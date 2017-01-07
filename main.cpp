@@ -34,10 +34,10 @@ EventBus eb(2048,300);
 Str line(20);
 class Timer : public Actor
 {
-
+uint32_t _counter;
 public:
 	Timer():Actor("timer") {
-
+_counter=0;
 	}
 	void setup() {
 		eb.onDst(H("timer")).subscribe(this);
@@ -63,10 +63,11 @@ PUBLISHING : {
 				PT_YIELD_UNTIL(timeout());
 				timeout(1000);
 				line.clear();
-				line.append(Sys::millis());
+				line.append(_counter);
 				eb.request(H("mqtt"),H("publish"),id()).addKeyValue(H("topic"),"dst/stm32").addKeyValue(H("message"),line);
 				eb.send();
-				PT_YIELD_UNTIL(timeout() || eb.isReply(H("mqtt"),H("publish")));
+				PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("mqtt"),H("publish")));
+				_counter++;
 			}
 		}
 		PT_END();

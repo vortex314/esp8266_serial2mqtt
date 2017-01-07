@@ -18,6 +18,11 @@ LedBlinker::LedBlinker() :
 LedBlinker::~LedBlinker() {
 }
 
+void LedBlinker::setup(){
+	
+}
+
+
 void LedBlinker::init() {
 	pinMode(PIN, OUTPUT);
 	digitalWrite(PIN, 1);

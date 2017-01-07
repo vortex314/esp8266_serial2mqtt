@@ -6,6 +6,7 @@
  */
 #include <EEPROM.h>
 #include "Config.h"
+#include <EventBus.h>
 
 #include <Sys.h>
 #define EEPROM_SIZE 512
@@ -43,7 +44,7 @@ bool ConfigClass::checkMagic() {
 	return false;
 }
 
-void ConfigClass::load(String& str) {
+void ConfigClass::load(Cbor& cbor) {
 	EEPROM.begin(EEPROM_SIZE);
 	if (!checkMagic()) {
 		LOGF(" initialize EEPROM with empty config.");
@@ -53,25 +54,26 @@ void ConfigClass::load(String& str) {
 		EEPROM.write(address++, '}');
 		EEPROM.write(address++, '\0');
 	}
+	cbor.offset(0);
 	int i = 4;
 	uint8_t b;
 	while (true) {
 		b = EEPROM.read(i++);
 		if (b == 0)
 			break;
-		str+=(char)b;
+		cbor.write(b);
 	}
 	EEPROM.end();
 //	LOGF(str.c_str());
 }
 
-void ConfigClass::save(String& str) {
+void ConfigClass::save(Cbor& cbor) {
 //	LOGF(str.c_str());
 	EEPROM.begin(EEPROM_SIZE);
 	int address = 4;
 	initMagic();
-	for (int i = 0; i < str.length(); i++)
-		EEPROM.write(address++, str.charAt(i));
+	for (int i = 0; i < cbor.length(); i++)
+		EEPROM.write(address++, cbor.peek(i));
 	EEPROM.write(address++, 0);
 	ASSERT_LOG(EEPROM.commit());
 	EEPROM.end();
@@ -79,22 +81,24 @@ void ConfigClass::save(String& str) {
 }
 
 void ConfigClass::set(const char* key, String& value) {
-	String input;
+	Cbor input(200);
 	load(input);
 //	LOGF(" input :%s",input.c_str());
-	StaticJsonBuffer<400> jsonConf;
+	int id=H(key);
+	Cbor output(input.length()+40);
+/*	StaticJsonBuffer<400> jsonConf;
 	JsonObject& object = jsonConf.parseObject(input);
 	object[key] = value;
 	String output;
 	object.printTo(output);
-	save(output);
+	save(output);*/
 //	LOGF(" output :%s",output.c_str());
 
 }
 
 void ConfigClass::get(const char* key, String& value,
 		const char* defaultValue) {
-	String input;
+/*	String input;
 	load(input);
 //	LOGF(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
@@ -104,11 +108,11 @@ void ConfigClass::get(const char* key, String& value,
 	else {
 		value = defaultValue;
 		set(key,value);
-	}
+	}*/
 }
 
 void ConfigClass::set(const char* key, uint32_t& value) {
-	String input;
+/*	String input;
 	load(input);
 //	LOGF(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
@@ -118,12 +122,12 @@ void ConfigClass::set(const char* key, uint32_t& value) {
 	object.printTo(output);
 	save(output);
 //	LOGF(" output :%s",output.c_str());
-
+*/
 }
 
 void ConfigClass::get(const char* key, uint32_t& value,
 		uint32_t defaultValue) {
-	String input;
+/*	String input;
 	load(input);
 //	LOGF(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
@@ -133,7 +137,7 @@ void ConfigClass::get(const char* key, uint32_t& value,
 	else{
 		value = defaultValue;
 		set(key,value);
-	}
+	}*/
 }
 
 ConfigClass Config;

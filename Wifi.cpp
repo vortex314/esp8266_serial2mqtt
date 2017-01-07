@@ -21,6 +21,10 @@ Wifi::~Wifi()
 {
 }
 
+void Wifi::init(){
+	
+}
+
 void Wifi::switchState(int st)
 {
 	if (st != Actor::state()) {

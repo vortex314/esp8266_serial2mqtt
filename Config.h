@@ -9,7 +9,7 @@
 #define ACTOR_CONFIG_H_
 
 #include <Arduino.h>
-#include <ArduinoJson.h>
+#include <Cbor.h>
 
 class ConfigClass {
 	void initialize();
@@ -22,8 +22,8 @@ public:
 
 	void load(String& config);
 	void save(String& config);
-	void load(JsonObject& config);
-	void save(JsonObject& config);
+	void load(Cbor& config);
+	void save(Cbor& config);
 
 	void get(const char*, uint32_t &, uint32_t defaultValue);
 	void get(const char*, String&, const char* defaultValue);

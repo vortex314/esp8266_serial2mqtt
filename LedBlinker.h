@@ -22,6 +22,7 @@ public:
 	void onEvent(Cbor&);
 	void loop();
 	void init();
+	void setup();
 };
 
 #endif /* LEDBLINKER_H_ */
