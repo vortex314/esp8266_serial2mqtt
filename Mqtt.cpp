@@ -12,9 +12,8 @@ void Mqtt::onEvent(Cbor& msg)
 	PT_BEGIN()
 	;
 WIFI_CONNECTING: {
-		state(H("wifi_disconn_lastected"));
+		state(H("wifi_disconnected"));
 		PT_YIELD_UNTIL( eb.isEvent(H("wifi"),H("connected")));
-		LOGF(" wifi ok ");
 	}
 MQTT_CONNECTING: {
 		while (true) {
@@ -23,12 +22,12 @@ MQTT_CONNECTING: {
 			PT_YIELD_UNTIL(timeout());
 			_willQos=2;
 			if ( _client->connect (_clientId.c_str(), _user.c_str(), _password.c_str(), _willTopic.c_str(), _willQos, _willRetain, _willMessage.c_str())) {
-				eb.reply().addKeyValue(EB_ERROR,E_OK);
-				eb.send();
+//				eb.reply().addKeyValue(EB_ERROR,E_OK);
+//				eb.send();
 				goto CONNECTED;
 			} else {
-				eb.reply().addKeyValue(EB_ERROR,_client->state());
-				eb.send();
+//				eb.reply().addKeyValue(EB_ERROR,_client->state());
+//				eb.send();
 			}
 //			if ( _client->connect(_clientId.c_str()) )goto CONNECTED;
 			timeout(2000);
@@ -40,10 +39,9 @@ MQTT_CONNECTING: {
 		};
 	};
 CONNECTED: {
-		LOGF(" connected ");
+		LOGF(" MQTT connected ");
 		eb.event(H("mqtt"),H("connected"));
 		eb.send();
-		state(H("connected"));
 		while(true) {
 			state(H("mqtt_connected"));
 			timeout(500000);
@@ -60,10 +58,10 @@ CONNECTED: {
 void Mqtt::loop(){
 	if ( _client->state() != _client_state) {
 		_client_state = _client->state();
-		if ( _client_state == MQTT_CONNECTED ) {
+/*		if ( _client_state == MQTT_CONNECTED ) {
 			eb.event(id(),H("connected"));
 			eb.send();
-		};
+		};*/
 	}
 	_client->loop();
 }
@@ -75,7 +73,7 @@ void Mqtt::onActorRegister(Cbor& cbor)
 Mqtt::Mqtt() : Actor("mqtt"),
 	_host(40), _port(1883), _clientId(30), _user(20), _password(20), _willTopic(
 	    30), _willMessage(30), _willQos(0), _willRetain(false), _keepAlive(
-	        20), _cleanSession(1), _msgid(0),_prefix(20)
+	        20), _cleanSession(1), _msgid(0),_prefix(20),_topic(30),_message(300)
 {
 	_lastSrc=id();
 }
@@ -93,7 +91,7 @@ void Mqtt::wakeup()
 void Mqtt::setup()
 {
 	_host = HOST;
-	_clientId = CLIENTID;
+	_clientId = Sys::hostname();
 	_user = "";
 	_password = "";
 	_prefix="limero";
@@ -101,6 +99,7 @@ void Mqtt::setup()
 	_willTopic.append("/system/alive");
 	_willMessage = "false";
 	_keepAlive=120;
+	
 
 	_wifi_client = new WiFiClient();
 	_client =  new PubSubClient(*_wifi_client);
@@ -112,6 +111,7 @@ void Mqtt::setup()
 	eb.onEvent(H("wifi"),0).subscribe(this);
 	eb.onRequest(H("mqtt"),H("publish")).subscribe(this,(MethodHandler)&Mqtt::publish);
 	eb.onRequest(H("mqtt"),H("subscribe")).subscribe(this,(MethodHandler)&Mqtt::subscribe);
+	eb.onRequest(H("mqtt"),H("connected")).subscribe(this,(MethodHandler)&Mqtt::isConnected);
 }
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::loadConfig(Cbor& cbor)
@@ -162,7 +162,7 @@ void Mqtt::callback(char* topic,byte* message,uint32_t length)
 void Mqtt::isConnected(Cbor& cbor)
 {
 	cbor.getKeyValue(EB_SRC,_lastSrc);
-	if ( state()==H("connected)") ) {
+	if ( state()==H("mqtt_connected)") ) {
 		eb.reply().addKeyValue(H("error"),0);
 		eb.send();
 	} else {
@@ -190,12 +190,10 @@ void Mqtt::publish(Cbor& cbor)
 		LOGF(" not connected ");
 		return;
 	}
-	Str topic(60);
-	Bytes message(1024);
 	bool retain=false;
-	if ( cbor.getKeyValue(H("topic"), topic) && cbor.getKeyValue(H("message"), message)) {
+	if ( cbor.getKeyValue(H("topic"), _topic) && cbor.getKeyValue(H("message"), _message)) {
 		cbor.getKeyValue(H("retain"), retain);
-		if ( _client->publish(topic.c_str(),message.data(),message.length(),retain)) {
+		if ( _client->publish(_topic.c_str(),_message.data(),_message.length(),retain)) {
 			eb.reply().addKeyValue(H("error"), (uint32_t) E_OK);
 			eb.send();
 		} else {

@@ -39,6 +39,8 @@ private:
     uint16_t _lastSrc;
     int _fd[2];   // pipe fd to wakeup in select
     Str _prefix;
+	Str _topic;
+	Bytes _message;
 	static void callback(char* topic,byte* message,uint32_t length);
 
 public:
