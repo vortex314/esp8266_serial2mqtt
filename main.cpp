@@ -28,34 +28,29 @@ Uid uid(100);
 EventBus eb(2048,300);
 
 Str str(300);
-void logCbor(Cbor& cbor) {
-    cbor.offset(0);
-    uint32_t key;
-    str.clear();
-    Cbor::PackType ct;
-    cbor.offset(0);
-    while (cbor.hasData()) {
-        cbor.get(key);
-            if ( uid.label(key))
-                str.append('"').append(uid.label(key)).append("\":");
-            else
-                str.append('"').append(key).append("\":");
-        if (key == EB_DST || key == EB_SRC || key == EB_REQUEST || key==EB_REPLY || key==EB_EVENT ) {
-            cbor.get(key);
-            if ( uid.label(key))
-                str.append('"').append(uid.label(key)).append("\"");
-            else
-                str.append('"').append(key).append("\"");
-
-        } else {
-            ct = cbor.tokenToString(str);
-            if (ct == Cbor::P_BREAK || ct == Cbor::P_ERROR)
-                break;
-        }
-        if (cbor.hasData())
-            str << ",";
-    };
-    LOGF("%s", str.c_str());
+void logCbor(Cbor& cbor)
+{
+	cbor.offset(0);
+	uid_t key,value;
+	str.clear();
+	Cbor::PackType ct;
+	cbor.offset(0);
+	while (cbor.hasData()) {
+		cbor.get(key);
+		const char* label = uid.label(key);
+		str.append('"').append(label).append("\":");
+		if (label[0]=='#' ) {
+			cbor.get(value);
+			str.append('"').append(uid.label(value)).append("\"");
+		} else {
+			ct = cbor.tokenToString(str);
+			if (ct == Cbor::P_BREAK || ct == Cbor::P_ERROR)
+				break;
+		}
+		if (cbor.hasData())
+			str << ",";
+	};
+	LOGF("%s", str.c_str());
 }
 
 //________________________________________________Se_________________
@@ -81,6 +76,7 @@ public:
 
 	void onEvent(Cbor& msg) {
 		PT_BEGIN();
+WAIT_CONNECTED :
 		PT_YIELD_UNTIL(eb.isEvent(H("mqtt"),H("connected")));
 		goto PUBLISHING;
 SUBSCRIBING : {
@@ -96,12 +92,12 @@ PUBLISHING : {
 			while(true) {
 				timeout(5000);
 				PT_YIELD_UNTIL(timeout());
-				timeout(1000);
 				line.clear();
 				line.append(_counter);
 //				eb.request(H("mqtt"),H("publish"),id()).addKeyValue(H("topic"),"dst/stm32").addKeyValue(H("message"),line);
 //				eb.send();
-				eb.request(H("stm32/system"),H("state"),id())
+				eb.request(H("system"),H("state"),id())
+				.addKeyValue(EB_DST_DEVICE,H("stm32"))
 				.addKeyValue(H("time"),Sys::millis())
 				.addKeyValue(H("count"),line)
 				.addKeyValue(H("$bytes"),(Bytes&)line)
@@ -109,16 +105,10 @@ PUBLISHING : {
 				.addKeyValue(H("float"),1.23)
 				.addKeyValue(H("#parity"),H("even"));
 				eb.send();
-				PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("mqtt"),H("publish")));
-				timeout(100);
-				line.clear();
-				line.append(_counter);
-//				eb.request(H("mqtt"),H("publish"),id()).addKeyValue(H("topic"),"dst/stm32").addKeyValue(H("message"),line);
-//				eb.send();
-				eb.event(H("system"),H("state"))
-				.addKeyValue(H("TICK"),Sys::millis());
-				eb.send();
-				PT_YIELD_UNTIL(timeout() );
+				timeout(1000);
+				PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("mqtt"),H("publish")) || eb.isEvent(H("mqtt"),H("disconnected")));
+				if (  eb.isEvent(H("mqtt"),H("disconnected")))
+					goto WAIT_CONNECTED;
 				_counter++;
 
 			}
@@ -161,7 +151,7 @@ extern "C" void setup()
 	router.setup();
 	led.setup();
 	systm.setup();
-	eb.onEvent(H("system"),H("state")).subscribe(&router,(MethodHandler)&Router::ebToMqtt); // publisize timer-state events 
+//	eb.onEvent(H("system"),H("state")).subscribe(&router,(MethodHandler)&Router::ebToMqtt); // publisize timer-state events
 
 
 	return;
@@ -172,4 +162,11 @@ extern "C" void loop()
 	eb.eventLoop();
 	wifi.loop();
 	mqtt.loop();
+	mdns.loop();
 }
+/*,
+H"dst"),H("src"),H("request"),H("reply"),H("event"),H("error"),H("Actor"),H("bootTime"),H("clientId"),H("connect"),H("connected"),H("data"),H("disconnect"),H("disconnected"),H("#dst"),
+H("#dst_device"),H("error"),H("error_msg"),H("#event"),H("#from"),H("host"),H("hostname"),H("id"),H("init"),H("keep_alive"),H("line"),H("message"),H("motor"),H("mqtt"),H("now"),
+H("prefix"),H("props"),H("publish"),H("published"),H("register"),H("Relay"),H("#reply"),H("#request"),H("reset"),H("Router"),H("rxd"),H("set"),H("setup"),H("#src"),H("#src_device"),H("state"),
+H("status"),H("subscribe"),H("system"),H("timeout"),H("topic"),H("upTime"),H("will_message"),H("will_topic"),
+*/

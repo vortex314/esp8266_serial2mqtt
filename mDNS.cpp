@@ -29,7 +29,7 @@ void mDNS::onEvent(Cbor& cbor){
 	
 }
 
-void mDNS::onWifiConnected(Cbor& hdr) {
+void mDNS::onWifiConnected() {
 	if (!MDNS.begin(WiFi.hostname().c_str())) {
 		LOGF("Error setting up MDNS responder!");
 	}

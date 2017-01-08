@@ -3,6 +3,7 @@
 KEYS_CPP=static_labels.cpp
 cat >$KEYS_CPP <<EOF
 // DON'T EDIT auto-generated
+#include <stdint.h>
 const char* static_labels[]={
  "dst","src","request","reply","event","error"
 EOF

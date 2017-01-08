@@ -19,7 +19,7 @@ public:
 	virtual ~mDNS();
 	void onEvent(Cbor& msg);
 	void loop();
-	void onWifiConnected(Cbor& msg);
+	void onWifiConnected();
 	void setup();
 	void setConfig(String& service,uint16_t port);
 	IPAddress query(const char* service);
