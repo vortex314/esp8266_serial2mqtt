@@ -1,0 +1,6 @@
+[submodule "Common"]
+	path = Common
+	url = https://www.github.com/vortex314/Common
+[submodule "Ebos"]
+	path = Ebos
+	url = https://www.github.com/vortex314/Ebos
