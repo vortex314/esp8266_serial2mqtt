@@ -40,6 +40,7 @@ extern "C" {
 #include "stdint.h"
 #include "Flash.h"
 #include "Sys.h"
+#include <Log.h>
 
 
 uint32_t roundQuad(uint32_t value) {

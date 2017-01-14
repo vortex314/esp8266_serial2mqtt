@@ -16,7 +16,7 @@ ConfigClass::ConfigClass() {
 
 }
 
-ConfigClass::~ConfigClass() {
+ConfigClass::~ConfigClass() { 
 
 }
 
@@ -141,4 +141,3 @@ void ConfigClass::get(const char* key, uint32_t& value,
 }
 
 ConfigClass Config;
-

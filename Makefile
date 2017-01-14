@@ -8,7 +8,8 @@ SERIAL_BAUD = 115200
 #SPIFFS_SIZE = 1
 USER_DEFINE = -DWIFI_SSID=\"Merckx3\" -DWIFI_PSWD=\"LievenMarletteEwoutRonald\" \
 	-I../Common/inc -I../pubsubclient/src -I../Ebos -DMQTT_MAX_PACKET_SIZE=300 -DESP8266
-USER_LINK = -L../Common/Debug -lCommon -lmain -L../Ebos/Debug -lEbos 
+# USER_LINK = -L../Common/Debug -lCommon -lmain -L../Ebos/Debug -lEbos 
+USER_LINK =  -lmain 
 OTA_IP = 192.168.1.184
 OTA_PORT = 8266 
 OTA_AUTH = password

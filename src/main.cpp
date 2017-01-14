@@ -26,6 +26,7 @@ uint32_t BAUDRATE = 115200;
 
 Uid uid(100);
 EventBus eb(2048,300);
+Log logger(256);
 
 Str str(300);
 void logCbor(Cbor& cbor)
@@ -126,7 +127,7 @@ System systm;
 
 extern void logCbor(Cbor&);
 
-extern "C" void setup()
+extern "C" void setup() 
 {
 	Serial.begin(BAUDRATE, SerialConfig::SERIAL_8N1, SerialMode::SERIAL_FULL);
 	Serial.setDebugOutput(false);

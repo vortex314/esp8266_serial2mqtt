@@ -6,6 +6,7 @@
  */
 #include <Arduino.h>
 #include <Sys.h>
+#include <Log.h>
 
 char Sys::_hostname[30]="UNDEFINED";
 uint64_t Sys::_boot_time=0;
