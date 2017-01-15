@@ -9,7 +9,7 @@
 
 mDNS::mDNS(Wifi& wifi) :
 		Actor("mdns") ,_wifi(wifi){
-	_port = 1883;
+	_port = 2000;
 	_service = "wibo";
 }
 
