@@ -7,8 +7,12 @@
 #include <Arduino.h>
 #include <Sys.h>
 #include <Log.h>
-
-char Sys::_hostname[30]="ESP8266_DEF";
+/*
+ * 
+ *  ATTENTION : LOGF call Sys::hostname, could invoke another call to Sys::hostname with LOGF,.... 
+ * 
+ */
+char Sys::_hostname[30];
 uint64_t Sys::_boot_time=0;
 
 uint64_t Sys::millis()
@@ -28,19 +32,16 @@ void Sys::setNow(uint64_t n)
 
 void Sys::hostname(const char* h)
 {
-    LOGF("%s:%d",h,_hostname);
-    Sys::delay(100);
-	if ( _hostname )
-	LOGF(" hostname : %s",_hostname);
-    Sys::delay(100);
-	strncpy(_hostname , h,strlen(h));
-	LOGF(" hostname : %s ",_hostname);
+	strncpy(_hostname , h,strlen(h)+1);
 }
 
 void Sys::setHostname(const char* h)
 {
 	strncpy(_hostname , h,strlen(h)+1);
-    return;
+}
+
+void Sys::init(){
+    sprintf(_hostname,"wibo_%X",ESP.getChipId());
 }
 
 const char* Sys::hostname()

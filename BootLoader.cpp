@@ -9,6 +9,7 @@ BootLoader::BootLoader(const char* name):
     _timeout = 0;
     _boot0 = true;
     _usartRxd = 0;
+    _baudrate=115200;
 }
 
 BootLoader::~BootLoader()
@@ -62,28 +63,64 @@ void BootLoader::init()
     pinMode(PIN_RESET, OUTPUT);
     digitalWrite(PIN_RESET, 1);
     pinMode(PIN_BOOT0, OUTPUT);
-    boot0Flash();
-    _mode = M_SYSTEM;
-//	setAltSerial(true);
+    digitalWrite(PIN_BOOT0, 1);
+    _mode = M_FLASH;
 }
 
 void BootLoader::setup()
 {
     eb.onDst(H("bootloader")).subscribe(this);
+    init();
+    timeout(5000);
 }
+
+Bytes rxd(30);
+Bytes txd(30);
+
+void BootLoader::report()
+{
+    timeout(10000);
+    eb.event(id(),H("state"))
+    .addKeyValue(H("reset"),digitalRead(PIN_RESET))
+    .addKeyValue(H("boot0"),digitalRead(PIN_BOOT0))
+    .addKeyValue(H("mode"),_mode)
+    .addKeyValue(H("baudrate"),_baudrate)
+    .addKeyValue(H("$txd"),txd)
+    .addKeyValue(H("$rxd"),rxd);
+    eb.send();
+}
+
+
 
 void BootLoader::onEvent(Cbor& msg)
 {
-
-
-    Serial.begin(_baudrate, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL);
+    if ( timeout() )  {
+        report();
+        return;
+    }
+    Serial.flush();
+    rxd.clear();
+    txd.clear();
+    delay(100);
     Serial.swap();
+//    Serial.begin(_baudrate, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL);
 
     Cbor& reply = eb.reply();
-
     uint32_t startTime = millis();
     Erc erc = 0;
-    if ( eb.isRequest(H("resetBootloader"))) {
+
+    if ( eb.isRequest(H("test"))) {
+        int value;
+        if ( msg.getKeyValue(H("reset"),value) ) {
+            digitalWrite(PIN_RESET, value ? 1 : 0);
+            reply.addKeyValue(H("reset"),value ? 1 : 0);
+        };
+        if ( msg.getKeyValue(H("boot0"),value) ) {
+            digitalWrite(PIN_BOOT0, value ? 1 : 0);
+            reply.addKeyValue(H("boot0"),value ? 1 : 0);
+        };
+
+    }  else if ( eb.isRequest(H("resetBootloader"))) {
 
         erc =  resetSystem();
 
@@ -100,6 +137,7 @@ void BootLoader::onEvent(Cbor& msg)
         }
 
     } else if ( eb.isRequest(H("getId")) ) {
+        LOGF("");
 
         uint16_t chipId;
         erc = getId(chipId);
@@ -206,9 +244,12 @@ void BootLoader::onEvent(Cbor& msg)
     }
     reply.addKeyValue(H("delta"), Sys::millis() - startTime);
     reply.addKeyValue(H("error"),erc);
+    reply.addKeyValue(H("$rxd"),rxd);
+    reply.addKeyValue(H("$txd"),txd);
+    eb.send();
 
-    Serial.begin(_baudrate, SerialConfig::SERIAL_8N1, SerialMode::SERIAL_FULL);
     Serial.swap();
+ //   Serial.begin(_baudrate, SerialConfig::SERIAL_8N1, SerialMode::SERIAL_FULL);
 }
 
 Erc BootLoader::boot0Flash()
@@ -222,33 +263,34 @@ Erc BootLoader::boot0System()
     digitalWrite(PIN_BOOT0, 1);
     return E_OK;
 }
-
+/*
 Str hstr(1024);
 void logBytes(const char* location, Bytes& bytes)
 {
     hstr.clear();
     bytes.toHex(hstr);
     LOGF(" %s : %s", location, hstr.c_str());
-}
+}*/
 Bytes in(300);
 
 Erc BootLoader::waitAck(Bytes& out, Bytes& in, uint32_t count, uint32_t time)
 {
+    byte b;
     Serial.write(out.data(), out.length());
-    timeout(time);
+    txd.append(out);
+    wait(time);
     while (true) {
-        if (timeout()) {
-            logBytes("TIMEOUT", in);
+        if (endWait()) {
             return ETIMEDOUT;
         };
         if (Serial.available()) {
-            byte b;
-            while (Serial.available()) {
-                in.write(b = Serial.read());
-            }
-            if (b == ACK)
-                break;
+
+            b = Serial.read();
+            in.write(b);
+            rxd.write(b);
         }
+        if (b == ACK)
+            break;
     }
 //	logBytes("ACK", in);
     return E_OK;
@@ -257,13 +299,15 @@ Erc BootLoader::waitAck(Bytes& out, Bytes& in, uint32_t count, uint32_t time)
 Erc BootLoader::readVar(Bytes& in, uint32_t max, uint32_t time)
 {
     uint32_t count;
-    timeout(time);
+    wait(time);
     while (true) {
-        if (timeout()) {
+        if (endWait()) {
             return ETIMEDOUT;
         };
         if (Serial.available()) {
-            count = Serial.read() + 1;
+            uint8_t b =Serial.read()  ;
+            count = b+ 1;
+            rxd.write(b);
 //			in.write(count - 1);
             break;
         }
@@ -271,11 +315,13 @@ Erc BootLoader::readVar(Bytes& in, uint32_t max, uint32_t time)
     if (count > max)
         return EINVAL;
     while (count) {
-        if (timeout()) {
+        if (endWait()) {
             return ETIMEDOUT;
         };
         if (Serial.available()) {
-            in.write(Serial.read());
+            uint8_t b = Serial.read();
+            in.write(b);
+            rxd.write(b);
             count--;
         }
     }
@@ -284,13 +330,15 @@ Erc BootLoader::readVar(Bytes& in, uint32_t max, uint32_t time)
 
 Erc BootLoader::read(Bytes& in, uint32_t count, uint32_t time)
 {
-    timeout(time);
+    wait(time);
     while (count) {
-        if (timeout()) {
+        if (endWait()) {
             return ETIMEDOUT;
         };
         if (Serial.available()) {
-            in.write(Serial.read());
+            uint8_t b = Serial.read();
+            in.write(b);
+            rxd.write(b);
             count--;
         }
     }
@@ -300,7 +348,8 @@ Erc BootLoader::read(Bytes& in, uint32_t count, uint32_t time)
 void flush()
 {
     while (Serial.available()) {
-        Serial.read();
+
+        rxd.write(Serial.read());
     };
     in.clear();
 }
@@ -321,6 +370,7 @@ byte slice(uint32_t word, int offset)
     return (byte) ((word >> (offset * 8)) & 0xFF);
 }
 
+
 Erc BootLoader::resetFlash()
 {
     boot0Flash();
@@ -340,9 +390,11 @@ Erc BootLoader::resetSystem()
     digitalWrite(PIN_RESET, 1);
     delay(10);
     Serial.write(0x7F);	// send sync for bootloader
+//    txd.append(0x7F);
     _mode = M_SYSTEM;
     return E_OK;
 }
+
 
 Erc BootLoader::getId(uint16_t& id)
 {
@@ -579,12 +631,12 @@ Erc BootLoader::readoutUnprotect()
     return erc;
 }
 
-bool BootLoader::timeout()
+bool BootLoader::endWait()
 {
     return _timeout < millis();
 }
 
-void BootLoader::timeout(uint32_t delta)
+void BootLoader::wait(uint32_t delta)
 {
     _timeout = millis() + delta;
 }

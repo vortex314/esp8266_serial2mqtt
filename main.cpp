@@ -25,7 +25,7 @@
 
 uint32_t BAUDRATE = 115200;
 
-Uid uid(100);
+Uid uid(200);
 EventBus eb(2048,300);
 Log logger(256);
 
@@ -110,37 +110,52 @@ UdpServer udp("udp");
 
 void setup()
 {
-    Serial.begin(BAUDRATE, SerialConfig::SERIAL_8N1, SerialMode::SERIAL_FULL);
+    Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL);
     Serial.setDebugOutput(false);
     LOGF("version : " __DATE__ " " __TIME__);
     LOGF("WIFI_SSID '%s'  ",WIFI_SSID);
 
     String hostname,ssid,pswd;
-    hostname="esp8266";
-    LOGF("%s",Sys::hostname());
-    LOGF("%s",hostname.c_str());
-    Sys::setHostname(hostname.c_str());
+    Sys::init();
+    LOGF("");
+    char hn[20];
+//   hostname = "wibo_";
+//    hostname += ESP.getChipId();
+//    sprintf(hn,"wibo_%X",ESP.getChipId());
+    strcpy(hn,"wibo");
+    hostname = hn;
+    LOGF("%s",hn);
+    Sys::hostname(hn);
+ 
+    logger.level(Log::LOG_TRACE);
 
     ssid = WIFI_SSID;
     pswd= WIFI_PSWD;
+    hostname=hn;
     wifi.setConfig(ssid,pswd,hostname);
+    mdns.setConfig(hostname,2000);
     LOGF(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
 
-    eb.onAny().subscribe([](Cbor& msg){
+    eb.onAny().subscribe([](Cbor& msg) {
         Str str(256);
         eb.log(str,msg);
+        LOGF("%s",str.c_str());
     });
 
     uid.add(labels,LABEL_COUNT);
     wifi.setup();
     mdns.setup();
     timer.setup();
+    
     mqtt.setup();
+    router.setMqttId(mqtt.id());
     router.setup();
+
     led.setup();
     systm.setup();
     bootloader.setup();
+    eb.onEvent(bootloader.id(), 0).subscribe(&router,(MethodHandler) &MqttJson::ebToMqtt);
     udp.setup();
 //	eb.onEvent(H("system"),H("state")).subscribe(&router,(MethodHandler)&Router::ebToMqtt); // publisize timer-state events
 

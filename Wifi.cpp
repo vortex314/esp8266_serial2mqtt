@@ -58,7 +58,9 @@ void Wifi::loop()
             LOGF(" still connecting ");
             return;
         } else
-            LOGF("WiFi connected");
+        LOGF(" starting Wifi host : '%s' on SSID : '%s' '%s' ", getHostname(),
+         getSSID(), getPassword());
+
     }
     switchState(WiFi.status() == WL_CONNECTED ? H("connected") : H("disconnected"));
 }
@@ -72,7 +74,7 @@ void Wifi::setConfig(String& ssid, String& password, String& hostname)
 
 const char*  Wifi::getHostname()
 {
-    return _hostname.c_str();
+    return Sys::hostname();
 }
 
 const char*  Wifi::getSSID()

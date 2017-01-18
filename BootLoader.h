@@ -12,11 +12,12 @@ class BootLoader : public Actor
 	 uint64_t _timeout;
     uint32_t _baudrate;
     uint32_t _usartRxd;
+    uint64_t _endTime;
 public:
     BootLoader(const char* name);
     ~BootLoader();
 	typedef enum {
-		M_SYSTEM, M_FLASH
+		M_SYSTEM,M_FLASH
 	} Mode;
 private:
 	Mode _mode;
@@ -36,6 +37,7 @@ public:
     void onEvent(Cbor& cbor);
 	Erc begin();
 
+    void report();
 	Erc resetFlash();
 	Erc resetSystem();
 	Erc getId(uint16_t& id);
@@ -64,8 +66,9 @@ public:
 	Erc setAltSerial(bool);
 	Erc engine(Bytes& reply, Bytes& req);
 	Erc boot0Flash();
-	Erc boot0System();bool timeout();
-	void timeout(uint32_t delta);
+	Erc boot0System();
+    bool endWait();
+	void wait(uint32_t delta);
 };
 
 
