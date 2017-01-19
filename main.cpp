@@ -110,7 +110,7 @@ UdpServer udp("udp");
 
 void setup()
 {
-    Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL);
+    Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
     Serial.setDebugOutput(false);
     LOGF("version : " __DATE__ " " __TIME__);
     LOGF("WIFI_SSID '%s'  ",WIFI_SSID);

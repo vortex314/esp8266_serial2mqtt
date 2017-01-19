@@ -90,6 +90,8 @@ void BootLoader::report()
     eb.send();
 }
 
+//-------------------------------------------------------------------------------------------------
+//
 
 
 void BootLoader::onEvent(Cbor& msg)
@@ -249,15 +251,15 @@ void BootLoader::onEvent(Cbor& msg)
     eb.send();
 
     Serial.swap();
- //   Serial.begin(_baudrate, SerialConfig::SERIAL_8N1, SerialMode::SERIAL_FULL);
+//   Serial.begin(_baudrate, SerialConfig::SERIAL_8N1, SerialMode::SERIAL_FULL);
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::boot0Flash()
 {
     digitalWrite(PIN_BOOT0, 0);
     return E_OK;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::boot0System()
 {
     digitalWrite(PIN_BOOT0, 1);
@@ -271,6 +273,7 @@ void logBytes(const char* location, Bytes& bytes)
     bytes.toHex(hstr);
     LOGF(" %s : %s", location, hstr.c_str());
 }*/
+//-------------------------------------------------------------------------------------------------
 Bytes in(300);
 
 Erc BootLoader::waitAck(Bytes& out, Bytes& in, uint32_t count, uint32_t time)
@@ -295,7 +298,7 @@ Erc BootLoader::waitAck(Bytes& out, Bytes& in, uint32_t count, uint32_t time)
 //	logBytes("ACK", in);
     return E_OK;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::readVar(Bytes& in, uint32_t max, uint32_t time)
 {
     uint32_t count;
@@ -327,7 +330,7 @@ Erc BootLoader::readVar(Bytes& in, uint32_t max, uint32_t time)
     }
     return E_OK;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::read(Bytes& in, uint32_t count, uint32_t time)
 {
     wait(time);
@@ -344,7 +347,7 @@ Erc BootLoader::read(Bytes& in, uint32_t count, uint32_t time)
     }
     return E_OK;
 }
-
+//-------------------------------------------------------------------------------------------------
 void flush()
 {
     while (Serial.available()) {
@@ -353,7 +356,7 @@ void flush()
     };
     in.clear();
 }
-
+//-------------------------------------------------------------------------------------------------
 byte xorBytes(byte* data, uint32_t count)
 {
     byte x = data[0];
@@ -364,12 +367,12 @@ byte xorBytes(byte* data, uint32_t count)
     }
     return x;
 }
-
+//-------------------------------------------------------------------------------------------------
 byte slice(uint32_t word, int offset)
 {
     return (byte) ((word >> (offset * 8)) & 0xFF);
 }
-
+//-------------------------------------------------------------------------------------------------
 
 Erc BootLoader::resetFlash()
 {
@@ -381,7 +384,7 @@ Erc BootLoader::resetFlash()
     _mode = M_FLASH;
     return E_OK;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::resetSystem()
 {
     boot0System();
@@ -394,7 +397,7 @@ Erc BootLoader::resetSystem()
     _mode = M_SYSTEM;
     return E_OK;
 }
-
+//-------------------------------------------------------------------------------------------------
 
 Erc BootLoader::getId(uint16_t& id)
 {
@@ -410,7 +413,7 @@ Erc BootLoader::getId(uint16_t& id)
     }
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::get(uint8_t& version, Bytes& cmds)
 {
     byte GET[] = { BL_GET, XOR(BL_GET) };
@@ -429,7 +432,7 @@ Erc BootLoader::get(uint8_t& version, Bytes& cmds)
     }
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::getVersion(uint8_t& version)
 {
     byte GET_VERSION[] = { BL_GET_VERSION, XOR(BL_GET_VERSION) };
@@ -446,7 +449,7 @@ Erc BootLoader::getVersion(uint8_t& version)
     }
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::writeMemory(uint32_t address, Bytes& data)
 {
     byte GET[] = { BL_WRITE_MEMORY, XOR(BL_WRITE_MEMORY) };
@@ -471,7 +474,7 @@ Erc BootLoader::writeMemory(uint32_t address, Bytes& data)
     }
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::readMemory(uint32_t address, uint32_t length, Bytes& data)
 {
     byte READ_MEMORY[] = { BL_READ_MEMORY, XOR(BL_READ_MEMORY) };
@@ -498,7 +501,7 @@ Erc BootLoader::readMemory(uint32_t address, uint32_t length, Bytes& data)
     }
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::go(uint32_t address)
 {
     byte GO[] = { BL_GO, XOR(BL_GO) };
@@ -516,7 +519,7 @@ Erc BootLoader::go(uint32_t address)
     erc = waitAck(out.map(ADDRESS, 5), in, 1, DELAY);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::eraseMemory(Bytes& pages)
 {
     byte ERASE_MEMORY[] = { BL_ERASE_MEMORY, XOR(BL_ERASE_MEMORY) };
@@ -536,7 +539,7 @@ Erc BootLoader::eraseMemory(Bytes& pages)
     erc = waitAck(noData, in, 10, 200);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::eraseAll()
 {
     byte ERASE_MEMORY[] = { BL_ERASE_MEMORY, XOR(BL_ERASE_MEMORY) };
@@ -551,7 +554,7 @@ Erc BootLoader::eraseAll()
     erc = waitAck(out.map(ALL_PAGES, 2), in, 1, 200);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::extendedEraseMemory()
 {
     byte EXTENDED_ERASE_MEMORY[] = { BL_EXTENDED_ERASE_MEMORY, XOR(
@@ -568,7 +571,7 @@ Erc BootLoader::extendedEraseMemory()
     erc = waitAck(out.map(ALL_PAGES, 3), in, 1, 200);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::writeProtect(Bytes& sectors)
 {
     byte WP[] = { BL_WRITE_PROTECT, XOR(BL_WRITE_PROTECT) };
@@ -588,7 +591,7 @@ Erc BootLoader::writeProtect(Bytes& sectors)
     erc = waitAck(noData, in, 10, 200);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::writeUnprotect()
 {
     byte WUP[] = { BL_WRITE_UNPROTECT, XOR(BL_WRITE_UNPROTECT) };
@@ -602,7 +605,7 @@ Erc BootLoader::writeUnprotect()
     erc = waitAck(noData, in, 1, DELAY);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::readoutProtect()
 {
     byte RDP[] = { BL_READOUT_PROTECT, XOR(BL_READOUT_PROTECT) };
@@ -616,7 +619,7 @@ Erc BootLoader::readoutProtect()
     erc = waitAck(noData, in, 1, DELAY);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 Erc BootLoader::readoutUnprotect()
 {
     byte RDUP[] = { BL_READOUT_UNPROTECT, XOR(BL_READOUT_UNPROTECT) };
@@ -630,21 +633,14 @@ Erc BootLoader::readoutUnprotect()
     erc = waitAck(noData, in, 1, DELAY);
     return erc;
 }
-
+//-------------------------------------------------------------------------------------------------
 bool BootLoader::endWait()
 {
     return _timeout < millis();
 }
-
+//-------------------------------------------------------------------------------------------------
 void BootLoader::wait(uint32_t delta)
 {
     _timeout = millis() + delta;
 }
-
-
-
-
-void BootLoader::loop()
-{
-
-}
+//-------------------------------------------------------------------------------------------------
