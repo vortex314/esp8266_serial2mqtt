@@ -76,7 +76,7 @@ void Mqtt::onActorRegister(Cbor& cbor)
 Mqtt::Mqtt() : Actor("mqtt"),
 	_host(40), _port(1883), _clientId(30), _user(20), _password(20), _willTopic(
 	    30), _willMessage(30), _willQos(0), _willRetain(false), _keepAlive(
-	        20), _cleanSession(1), _msgid(0),_prefix(20),_topic(30),_message(300)
+	        20), _cleanSession(1), _msgid(0),_prefix(20),_topic(TOPIC_LENGTH),_message(300)
 {
 	_lastSrc=id();
 }
@@ -131,7 +131,7 @@ void Mqtt::connect(Cbor& cbor)
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::callback(char* topic,byte* message,uint32_t length)
 {
-	LOGF(" message arrived : [%s]",topic);
+	TRACE(" message arrived : [%s]",topic);
 	Str tpc(topic);
 	Str msg(message,length);
 	eb.event(H("mqtt"),H("published")).addKeyValue(H("topic"), tpc).addKeyValue(H("message"), msg);
@@ -201,7 +201,7 @@ void Mqtt::subscribe(Cbor& cbor)
 		eb.reply().addKeyValue(H("error"), ENOTCONN);
 		return;
 	}
-	Str topic(60);
+	Str topic(TOPIC_LENGTH);
 	int qos = 0;
 	if ( cbor.getKeyValue(H("topic"), topic)  ) {
 		cbor.getKeyValue(H("qos"), qos);
@@ -210,6 +210,7 @@ void Mqtt::subscribe(Cbor& cbor)
 			eb.reply().addKeyValue(H("error"), E_OK);
 			eb.send();
 		} else {
+
 			eb.reply().addKeyValue(H("error"), EFAULT);
 			eb.send();
 			LOGF("NOK OK : EFAULT");

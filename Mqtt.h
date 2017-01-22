@@ -17,6 +17,8 @@
 #define QOS         1
 #define TIMEOUT     10000L
 
+#define TOPIC_LENGTH 40
+
 class Mqtt : public Actor
 {
 private:

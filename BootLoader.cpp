@@ -103,8 +103,6 @@ void BootLoader::onEvent(Cbor& msg)
     Serial.flush();
     rxd.clear();
     txd.clear();
-    delay(100);
-    Serial.swap();
 //    Serial.begin(_baudrate, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL);
 
     Cbor& reply = eb.reply();
@@ -132,31 +130,38 @@ void BootLoader::onEvent(Cbor& msg)
 
     } else if ( eb.isRequest(H("goFlash")) ) {
 
+        Serial.swap();
         uint32_t address;
         if ( msg.getKeyValue(H("address"),address) ) {
             erc = go(address);
             reply.addKeyValue(H("address"), address);
         }
+        Serial.swap();
 
     } else if ( eb.isRequest(H("getId")) ) {
         LOGF("");
+        Serial.swap();
 
         uint16_t chipId;
         erc = getId(chipId);
         if (erc == E_OK) {
             reply.addKeyValue(H("chip_id"), chipId) ;
         }
+        Serial.swap();
 
     } else if ( eb.isRequest(H("getVersion")) ) {
 
+        Serial.swap();
         uint8_t version;
         erc = getVersion(version);
         if (erc == E_OK) {
             reply.addKeyValue(H("version"), version);
         }
+        Serial.swap();
 
     } else if ( eb.isRequest(H("get")) ) {
 
+        Serial.swap();
         Bytes data(30);
         uint8_t version;
         erc = get(version, data);
@@ -164,9 +169,11 @@ void BootLoader::onEvent(Cbor& msg)
             reply.addKeyValue(H("$cmds"),data);
             reply.addKeyValue(H("version"), version);
         }
+        Serial.swap();
 
     } else if ( eb.isRequest(H("writeMemory")) ) {
 
+        Serial.swap();
         Bytes data(256);
         uint32_t address;
         if ( msg.getKeyValue(H("$data"),data) && msg.getKeyValue(H("address"),address)  ) {
@@ -175,25 +182,33 @@ void BootLoader::onEvent(Cbor& msg)
         } else {
             erc=EINVAL;
         }
+        Serial.swap();
 
     } else if ( eb.isRequest(H("eraseMemory")) ) {
 
+        Serial.swap();
         Bytes pages(256);
         if ( msg.getKeyValue(H("$pages"),pages)  ) {
             erc = eraseMemory(pages);
             reply.addKeyValue(H("length"),pages.length());
         }
+        Serial.swap();
 
     } else if ( eb.isRequest(H("extendedEraseMemory")) ) {
+        Serial.swap();
 
         erc = extendedEraseMemory();
+        Serial.swap();
 
     } else if ( eb.isRequest(H("eraseAll")) ) {
 
+        Serial.swap();
         erc = eraseAll();
+        Serial.swap();
 
     } else if ( eb.isRequest(H("readMemory")) ) {
 
+        Serial.swap();
         Bytes data(256);
         uint32_t address ;
         uint32_t length ;
@@ -208,27 +223,37 @@ void BootLoader::onEvent(Cbor& msg)
         } else {
             erc=EINVAL;
         }
+        Serial.swap();
     } else if ( eb.isRequest(H("writeProtect")) ) {
 
+        Serial.swap();
         Bytes data(256);
         if ( msg.getKeyValue(H("$data"),data))
             erc = writeProtect(data);
         else {
             erc=EINVAL;
         }
+        Serial.swap();
     } else if ( eb.isRequest(H("writeUnprotect")) ) {
 
+        Serial.swap();
         erc = writeUnprotect();
+        Serial.swap();
 
     } else if ( eb.isRequest(H("readoutProtect")) ) {
 
+        Serial.swap();
         erc = readoutProtect();
+        Serial.swap();
 
     } else if ( eb.isRequest(H("readoutUnprotect"))) {
 
+        Serial.swap();
         erc = readoutUnprotect();
+        Serial.swap();
 
     } else if ( eb.isRequest(H("set")) ) {
+        Serial.swap();
         uint32_t baudrate;
         if (msg.getKeyValue(H("baudrate"),baudrate) ) {
             _baudrate = baudrate;
@@ -240,9 +265,12 @@ void BootLoader::onEvent(Cbor& msg)
         String config;
 //        Config.load(config);
         reply.addKeyValue(H("config"), config);
+        Serial.swap();
 
     } else {
+        eb.clear();
         eb.defaultHandler(this,msg);
+        return;
     }
     reply.addKeyValue(H("delta"), Sys::millis() - startTime);
     reply.addKeyValue(H("error"),erc);
@@ -250,7 +278,6 @@ void BootLoader::onEvent(Cbor& msg)
     reply.addKeyValue(H("$txd"),txd);
     eb.send();
 
-    Serial.swap();
 //   Serial.begin(_baudrate, SerialConfig::SERIAL_8N1, SerialMode::SERIAL_FULL);
 }
 //-------------------------------------------------------------------------------------------------

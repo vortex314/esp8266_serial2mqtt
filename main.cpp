@@ -137,7 +137,7 @@ void setup()
     LOGF(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
 
-    eb.onAny().subscribe([](Cbor& msg) {
+   eb.onAny().subscribe([](Cbor& msg) {
         Str str(256);
         eb.log(str,msg);
         LOGF("%s",str.c_str());
