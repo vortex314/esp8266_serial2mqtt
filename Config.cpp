@@ -47,7 +47,7 @@ bool ConfigClass::checkMagic() {
 void ConfigClass::load(Cbor& cbor) {
 	EEPROM.begin(EEPROM_SIZE);
 	if (!checkMagic()) {
-		LOGF(" initialize EEPROM with empty config.");
+		DEBUG(" initialize EEPROM with empty config.");
 		initMagic();
 		int address = 4;
 		EEPROM.write(address++, '{');
@@ -64,11 +64,11 @@ void ConfigClass::load(Cbor& cbor) {
 		cbor.write(b);
 	}
 	EEPROM.end();
-//	LOGF(str.c_str());
+//	DEBUG(str.c_str());
 }
 
 void ConfigClass::save(Cbor& cbor) {
-//	LOGF(str.c_str());
+//	DEBUG(str.c_str());
 	EEPROM.begin(EEPROM_SIZE);
 	int address = 4;
 	initMagic();
@@ -83,7 +83,7 @@ void ConfigClass::save(Cbor& cbor) {
 void ConfigClass::set(const char* key, String& value) {
 	Cbor input(200);
 	load(input);
-//	LOGF(" input :%s",input.c_str());
+//	DEBUG(" input :%s",input.c_str());
 	int id=H(key);
 	Cbor output(input.length()+40);
 /*	StaticJsonBuffer<400> jsonConf;
@@ -92,7 +92,7 @@ void ConfigClass::set(const char* key, String& value) {
 	String output;
 	object.printTo(output);
 	save(output);*/
-//	LOGF(" output :%s",output.c_str());
+//	DEBUG(" output :%s",output.c_str());
 
 }
 
@@ -100,7 +100,7 @@ void ConfigClass::get(const char* key, String& value,
 		const char* defaultValue) {
 /*	String input;
 	load(input);
-//	LOGF(" input :%s",input.c_str());
+//	DEBUG(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
 	JsonObject& object = jsonConf.parseObject(input);
 	if (object.containsKey(key))
@@ -114,14 +114,14 @@ void ConfigClass::get(const char* key, String& value,
 void ConfigClass::set(const char* key, uint32_t& value) {
 /*	String input;
 	load(input);
-//	LOGF(" input :%s",input.c_str());
+//	DEBUG(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
 	JsonObject& object = jsonConf.parseObject(input);
 	object[key] = String(value);
 	String output;
 	object.printTo(output);
 	save(output);
-//	LOGF(" output :%s",output.c_str());
+//	DEBUG(" output :%s",output.c_str());
 */
 }
 
@@ -129,7 +129,7 @@ void ConfigClass::get(const char* key, uint32_t& value,
 		uint32_t defaultValue) {
 /*	String input;
 	load(input);
-//	LOGF(" input :%s",input.c_str());
+//	DEBUG(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
 	JsonObject& object = jsonConf.parseObject(input);
 	if (object.containsKey(key))

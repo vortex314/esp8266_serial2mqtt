@@ -8,7 +8,7 @@ SERIAL_BAUD = 115200
 # uncomment this to use the 1M SPIFFS mapping
 #SPIFFS_SIZE = 1
 USER_DEFINE = -DWIFI_SSID=\"Merckx3\" -DWIFI_PSWD=\"LievenMarletteEwoutRonald\" \
-	-Ilibraries/Common/src -I../pubsubclient/src -Ilibraries/Ebos -DMQTT_MAX_PACKET_SIZE=300 -DESP8266
+	-Ilibraries/Common/src -I../pubsubclient/src -Ilibraries/Ebos -DMQTT_MAX_PACKET_SIZE=1024 -DESP8266
 USER_LINK =  -lmain  
 OTA_IP = 192.168.1.184
 OTA_PORT = 8266 

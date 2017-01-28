@@ -47,7 +47,7 @@ private:
 
 public:
 
-    Mqtt();
+    Mqtt(const char* name,uint32_t maxSize);
     virtual ~Mqtt();
     void setup();
     void onEvent(Cbor& cbor);

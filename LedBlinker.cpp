@@ -44,11 +44,9 @@ void LedBlinker::onEvent(Cbor& cbor) {
 }
 
 void LedBlinker::blinkFast() {
-	LOGF("");
 	_interval = 100;
 }
 
 void LedBlinker::blinkSlow() {
-	LOGF("");
 	_interval = 1000;
 }

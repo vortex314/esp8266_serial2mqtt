@@ -5,6 +5,18 @@
 #include <unistd.h>
 #include <fcntl.h>
 //--------------------------------------------------------------------------------------------------------
+Mqtt::Mqtt(const char* name,uint32_t maxSize) : Actor(name),
+	_host(40), _port(1883), _clientId(30), _user(20), _password(20), _willTopic(
+	    30), _willMessage(30), _willQos(0), _willRetain(false), _keepAlive(
+	        20), _cleanSession(1), _msgid(0),_prefix(20),_topic(TOPIC_LENGTH),_message(maxSize)
+{
+	_lastSrc=id();
+}
+//--------------------------------------------------------------------------------------------------------
+Mqtt::~Mqtt()
+{
+}
+//--------------------------------------------------------------------------------------------------------
 void Mqtt::setup()
 {
 	_host = HOST;
@@ -24,7 +36,7 @@ void Mqtt::setup()
 	_client->setCallback(callback);
 	state(H("disconnected"));
 
-	eb.onDst(H("mqtt")).subscribe(this);
+	eb.onDst(H(name())).subscribe(this);
 //	eb.onEvent(H("wifi"),0).subscribe(this);
 //	eb.onRequest(H("mqtt"),H("publish")).subscribe(this,(MethodHandler)&Mqtt::publish);
 //	eb.onRequest(H("mqtt"),H("subscribe")).subscribe(this,(MethodHandler)&Mqtt::subscribe);
@@ -55,10 +67,10 @@ void Mqtt::loop()
 		_client_state = _client->state();
 		if ( _client_state == MQTT_CONNECTED ) {
 			state(H("connected"));
-			LOGF(" state changed : %s ",uid.label(state()));
+			DEBUG(" state changed : %s ",uid.label(state()));
 		} else {
 			state(H("disconnected"));
-			LOGF(" state changed : %s ",uid.label(state()));
+			DEBUG(" state changed : %s ",uid.label(state()));
 
 		}
 		eb.event(id(),state());
@@ -72,22 +84,11 @@ void Mqtt::loop()
 void Mqtt::onActorRegister(Cbor& cbor)
 {
 }
-//--------------------------------------------------------------------------------------------------------
-Mqtt::Mqtt() : Actor("mqtt"),
-	_host(40), _port(1883), _clientId(30), _user(20), _password(20), _willTopic(
-	    30), _willMessage(30), _willQos(0), _willRetain(false), _keepAlive(
-	        20), _cleanSession(1), _msgid(0),_prefix(20),_topic(TOPIC_LENGTH),_message(300)
-{
-	_lastSrc=id();
-}
-//--------------------------------------------------------------------------------------------------------
-Mqtt::~Mqtt()
-{
-}
+
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::wakeup()
 {
-	LOGF(" wakeup ");
+	DEBUG(" wakeup ");
 }
 
 
@@ -117,12 +118,14 @@ void Mqtt::connect(Cbor& cbor)
 		eb.send();
 		return;
 	}
-	LOGF( " Connecting to (%s : %d) will (%s : %s) with clientId : %s ",_host.c_str(),_port,_willTopic.c_str(),_willMessage.c_str(),_clientId.c_str());
+	INFO( " Connecting to (%s : %d) will (%s : %s) with clientId : %s ",_host.c_str(),_port,_willTopic.c_str(),_willMessage.c_str(),_clientId.c_str());
 	if ( _client->connect (_clientId.c_str(), _user.c_str(), _password.c_str(), _willTopic.c_str(), _willQos, _willRetain, _willMessage.c_str())) {
 		eb.reply().addKeyValue(EB_ERROR,E_OK);
 		eb.send();
 		state(H("connected"));
-		LOGF(" state changed : %s ",uid.label((uid_t)state()));
+        eb.event(me(),H("connected"));
+		eb.send();
+		INFO(" state changed : %s ",uid.label((uid_t)state()));
 	} else {
 		eb.reply().addKeyValue(EB_ERROR,_client->state());
 		eb.send();
@@ -134,7 +137,7 @@ void Mqtt::callback(char* topic,byte* message,uint32_t length)
 	TRACE(" message arrived : [%s]",topic);
 	Str tpc(topic);
 	Str msg(message,length);
-	eb.event(H("mqtt"),H("published")).addKeyValue(H("topic"), tpc).addKeyValue(H("message"), msg);
+	eb.event(H("mqtt"),H("published")).addKeyValue(H("topic"), tpc).addKeyValue(H("message"), msg); // TODO make H("mqtt") dynamic on name
 	eb.send();
 }
 //--------------------------------------------------------------------------------------------------------
@@ -167,7 +170,7 @@ void Mqtt::publish(Cbor& cbor)
 	if (state()!=H("connected")) {
 		eb.reply().addKeyValue(H("error_detail"),"not connected").addKeyValue(EB_ERROR, (uint32_t) ENOTCONN);
 		eb.send();
-		LOGF(" not connected ");
+		WARN(" not connected ");
 		return;
 	}
 	if ( cbor.getKeyValue(H("topic"), _topic) && cbor.getKeyValue(H("message"), _message)) {
@@ -205,7 +208,7 @@ void Mqtt::subscribe(Cbor& cbor)
 	int qos = 0;
 	if ( cbor.getKeyValue(H("topic"), topic)  ) {
 		cbor.getKeyValue(H("qos"), qos);
-		LOGF(" topic : %s qos : %d ",topic.c_str(),qos);
+		DEBUG(" topic : %s qos : %d ",topic.c_str(),qos);
 		if ( _client->subscribe(topic.c_str(),qos) ) {
 			eb.reply().addKeyValue(H("error"), E_OK);
 			eb.send();
@@ -213,12 +216,12 @@ void Mqtt::subscribe(Cbor& cbor)
 
 			eb.reply().addKeyValue(H("error"), EFAULT);
 			eb.send();
-			LOGF("NOK OK : EFAULT");
+			WARN("NOK OK : EFAULT");
 		}
 	} else {
 		eb.reply().addKeyValue(H("error"), EINVAL);
 		eb.send();
-		LOGF("NOK OK : EINVAL");
+		WARN("NOK OK : EINVAL");
 	}
 }
 //--------------------------------------------------------------------------------------------------------

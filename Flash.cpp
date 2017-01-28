@@ -64,9 +64,9 @@ Flash::~Flash() {
 void Flash::init() {
 	findOrCreateActivePage();
 	_page = PAGE_START + PAGE_SIZE * (_sequence % PAGE_COUNT);
-	LOGF("page address  : 0x%X ", _page);
-	LOGF("free start  : 0x%X", _freePos);
-	LOGF("sequence  : %d", _sequence);
+	DEBUG("page address  : 0x%X ", _page);
+	DEBUG("free start  : 0x%X", _freePos);
+	DEBUG("sequence  : %d", _sequence);
 }
 
 //-----------------------------------------------------------------------------

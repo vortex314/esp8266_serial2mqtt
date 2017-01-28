@@ -7,18 +7,20 @@
 #include <Config.h>
 class BootLoader : public Actor
 {
-    bool _alt_serial;
+    bool _serialSwapped;
     bool _boot0;
     uint64_t _timeout;
     uint32_t _baudrate;
     uint32_t _usartRxd;
     uint64_t _endTime;
+    Bytes _in;
 public:
     BootLoader(const char* name);
     ~BootLoader();
     typedef enum {
         M_SYSTEM,M_FLASH
     } Mode;
+
 private:
     Mode _mode;
 public:
@@ -35,11 +37,12 @@ public:
     void init();
     void setup();
     void onEvent(Cbor& cbor);
+    void loop();
+    void flush();
     Erc begin();
 
     void report();
-    Erc resetFlash();
-    Erc resetSystem();
+    Erc resetPulse();
     Erc getId(uint16_t& id);
     Erc getVersion(uint8_t& version);
     Erc get(uint8_t& version, Bytes& cmds);
@@ -57,14 +60,13 @@ public:
         return _mode;
     }
 
-    Erc waitAck(Bytes& out, Bytes& in, uint32_t count, uint32_t timeout);
+    Erc waitAck(Bytes& out,  uint32_t timeout);
+    Erc readTillAck(Bytes& in, uint32_t timeout);
     Erc readVar(Bytes& in, uint32_t max, uint32_t timeout);
     Erc read(Bytes& in, uint32_t lenghth, uint32_t timeout);
     Erc setBoot0(bool);
-    Erc setAltSerial(bool);
+    Erc serialSwap(bool);
     Erc engine(Bytes& reply, Bytes& req);
-    Erc boot0Flash();
-    Erc boot0System();
     bool endWait();
     void wait(uint32_t delta);
 };

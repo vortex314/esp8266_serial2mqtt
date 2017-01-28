@@ -19,7 +19,7 @@ void UdpServer::setConfig(uint16_t port)
 
 void UdpServer::onWifiConnect(Cbor& cbor)
 {
-    LOGF(" UDP initialized ");
+    INFO(" UDP initialized ");
     begin(_port);
 }
 
@@ -62,15 +62,15 @@ void UdpServer::loop()
         _packetIdx++;
         _connected = true;
         if (length > UDP_MAX_SIZE) {
-            LOGF(" UDP packet too big");
+            WARN(" UDP packet too big");
             return;
         }
-        LOGF(" UDP rxd %s:%d in packet %d", remoteIP().toString().c_str(),
+        DEBUG(" UDP rxd %s:%d in packet %d", remoteIP().toString().c_str(),
              remotePort(), _packetIdx);
         _lastAddress = remoteIP();
         _lastPort = remotePort();
 
-        LOGF("  remote IP : %s ", remoteIP().toString().c_str());
+        DEBUG("  remote IP : %s ", remoteIP().toString().c_str());
         read(_buffer, length); 			// read the packet into the buffer
         Bytes bytes(_buffer,length);
         eb.event(id(),H("rxd")).addKeyValue(H("data"),bytes);

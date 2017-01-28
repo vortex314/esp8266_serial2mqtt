@@ -38,9 +38,9 @@ void mDNS::onEvent(Cbor& cbor)
 void mDNS::onWifiConnected()
 {
     if (!MDNS.begin(WiFi.hostname().c_str(),WiFi.localIP())) {
-        LOGF("Error setting up MDNS responder!");
+        WARN("Error setting up MDNS responder!");
     }
-    LOGF("publish service %s:%d",_service.c_str(),_port);
+    INFO("publish service %s:%d",_service.c_str(),_port);
 //    MDNS.addService(_service, "tcp", _port);
 //    MDNS.addServiceTxt(_service,"tcp","key","value");
 //    MDNS.addService("ws", "tcp", 81);
@@ -58,7 +58,7 @@ void mDNS::loop()
 IPAddress mDNS::query(const char* service)
 {
     for(int i=0; i< 5; i++) {
-        LOGF(" looking for MQTT host ");
+        INFO(" looking for MQTT host ");
 
         int number = MDNS.queryService(service, "tcp");
 
@@ -68,7 +68,7 @@ IPAddress mDNS::query(const char* service)
                 int port = MDNS.port(result);
                 String host = MDNS.hostname(result);
                 IPAddress IP = MDNS.IP(result);
-                LOGF("Service Found [%u] %s (%u.%u.%u.%u) port = %u\n", result,
+                INFO("Service Found [%u] %s (%u.%u.%u.%u) port = %u\n", result,
                      host.c_str(), IP[0], IP[1], IP[2], IP[3], port);
                 return IP;
             }

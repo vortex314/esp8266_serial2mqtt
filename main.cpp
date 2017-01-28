@@ -26,7 +26,7 @@
 uint32_t BAUDRATE = 115200;
 
 Uid uid(200);
-EventBus eb(2048,300);
+EventBus eb(2048,1024);
 Log logger(256);
 
 
@@ -43,9 +43,11 @@ Str line(20);
 class Timer : public Actor
 {
     uint32_t _counter;
+    uid_t _bl;
 public:
     Timer():Actor("timer") {
         _counter=0;
+        _bl =  H("bootloader");
     }
     void setup() {
         eb.onDst(H("timer")).subscribe(this);
@@ -55,52 +57,40 @@ public:
 
     void onEvent(Cbor& msg) {
         PT_BEGIN();
-WAIT_CONNECTED :
-        PT_YIELD_UNTIL(eb.isEvent(H("mqtt"),H("connected")));
-        goto PUBLISHING;
-SUBSCRIBING : {
+WAIT_CONNECTED : {
             while(true) {
+                eb.request(H("mqtt"),H("connect"),id());
+                eb.send();
                 timeout(3000);
-                eb.request(H("mqtt"),H("subscribe"),id()).addKeyValue(H("topic"),"dst/esp8266/#").addKeyValue(H("qos"),1);
-                eb.send();
-                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("mqtt"),H("subscribe")));
-                if ( ! timeout()) goto PUBLISHING;
+                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("mqtt"),H("connected")));
+                if ( ! timeout()) goto TEST;
+                INFO(" waiting mqtt connect .. ");
             }
         }
-PUBLISHING : {
+TEST : {
             while(true) {
-                timeout(5000);
-                PT_YIELD_UNTIL(timeout());
-                line.clear();
-                line.append(_counter);
-//				eb.request(H("mqtt"),H("publish"),id()).addKeyValue(H("topic"),"dst/stm32").addKeyValue(H("message"),line);
-//				eb.send();
-                eb.request(H("system"),H("state"),id())
-                .addKeyValue(EB_DST_DEVICE,H("stm32"))
-                .addKeyValue(H("time"),Sys::millis())
-                .addKeyValue(H("count"),line)
-                .addKeyValue(H("$bytes"),(Bytes&)line)
-                .addKeyValue(H("boolean"),false)
-                .addKeyValue(H("float"),1.23)
-                .addKeyValue(H("#parity"),H("even"));
+                eb.request(_bl,H("resetBootloader"),id());
                 eb.send();
-                timeout(1000);
-                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("mqtt"),H("publish")) || eb.isEvent(H("mqtt"),H("disconnected")));
-                if (  eb.isEvent(H("mqtt"),H("disconnected")))
-                    goto WAIT_CONNECTED;
-                _counter++;
-
+                timeout(3000);
+                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(_bl,H("resetBootloader")));
+                if ( timeout()) goto TEST;
+                eb.request(_bl,H("get"),id());
+                eb.send();
+                timeout(3000);
+                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(_bl,H("get")));
+                if ( timeout()) goto TEST;
             }
         }
+
         PT_END();
     }
 };
 Wifi wifi;
 mDNS mdns(wifi);
-Timer timer;
+//Timer timer;
 LedBlinker led;
-Mqtt mqtt;
-MqttJson router("router");
+Mqtt mqtt("mqtt",1024);
+MqttJson router("router",1024);
 System systm;
 BootLoader bootloader("bootloader");
 UdpServer udp("udp");
@@ -112,21 +102,21 @@ void setup()
 {
     Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
     Serial.setDebugOutput(false);
-    LOGF("version : " __DATE__ " " __TIME__);
-    LOGF("WIFI_SSID '%s'  ",WIFI_SSID);
+    INFO("version : " __DATE__ " " __TIME__);
+    INFO("WIFI_SSID '%s'  ",WIFI_SSID);
 
     String hostname,ssid,pswd;
     Sys::init();
-    LOGF("");
+    INFO("");
     char hn[20];
 //   hostname = "wibo_";
 //    hostname += ESP.getChipId();
 //    sprintf(hn,"wibo_%X",ESP.getChipId());
     strcpy(hn,"wibo");
     hostname = hn;
-    LOGF("%s",hn);
+    INFO(" hostname : %s",hn);
     Sys::hostname(hn);
- 
+
     logger.level(Log::LOG_TRACE);
 
     ssid = WIFI_SSID;
@@ -134,20 +124,20 @@ void setup()
     hostname=hn;
     wifi.setConfig(ssid,pswd,hostname);
     mdns.setConfig(hostname,2000);
-    LOGF(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
+    INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
 
-   eb.onAny().subscribe([](Cbor& msg) {
+    eb.onAny().subscribe([](Cbor& msg) {
         Str str(256);
         eb.log(str,msg);
-        LOGF("%s",str.c_str());
+        DEBUG("%s",str.c_str());
     });
 
     uid.add(labels,LABEL_COUNT);
     wifi.setup();
     mdns.setup();
-    timer.setup();
-    
+//    timer.setup();
+
     mqtt.setup();
     router.setMqttId(mqtt.id());
     router.setup();
@@ -155,7 +145,7 @@ void setup()
     led.setup();
     systm.setup();
     bootloader.setup();
-    eb.onEvent(bootloader.id(), 0).subscribe(&router,(MethodHandler) &MqttJson::ebToMqtt);
+    
     udp.setup();
 //	eb.onEvent(H("system"),H("state")).subscribe(&router,(MethodHandler)&Router::ebToMqtt); // publisize timer-state events
 
@@ -169,4 +159,5 @@ extern "C"  void loop()
     mqtt.loop();
     mdns.loop();
     udp.loop();
+    bootloader.loop();
 }
