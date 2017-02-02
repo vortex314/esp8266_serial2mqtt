@@ -2,12 +2,13 @@
 
 Bytes noData(0);
 Str _msg(100);
-void setLog(const char* s){
+void setLog(const char* s)
+{
     _msg=s;
 }
 
 BootLoader::BootLoader(const char* name):
-    Actor(name),_in(300)
+    Actor(name),_in(300),_cmds(50)
 {
     _mode = M_SYSTEM;
     _serialSwapped = false;
@@ -50,15 +51,16 @@ Erc BootLoader::serialSwap(bool flag)
 {
     if (_serialSwapped == flag)
         return E_OK;
-    _serialSwapped = flag; 
+    _serialSwapped = flag;
     if ( _serialSwapped ) {
         Serial.begin(115200*4, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
         _baudrate=115200*4;
+        Serial.swap();
     } else {
         Serial.begin(115200, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
         _baudrate=115200;
     }
-    Serial.swap();
+
     return E_OK;
 }
 /*
@@ -92,7 +94,7 @@ void BootLoader::loop() // send all serial received data outside a command as lo
             _lastData = Sys::millis();
         };
     }
-    if ( rxd.length()  && ((Sys::millis() > _lastData+10) || !rxd.hasSpace(10))  ) {
+    if ( rxd.length()>5  || ((Sys::millis() > _lastData+10) || !rxd.hasSpace(10))  ) {
         eb.event(id(),H("log")).addKeyValue(H("$data"),rxd);
         eb.send();
         rxd.clear();
@@ -171,6 +173,7 @@ void BootLoader::onEvent(Cbor& msg)
         uint16_t chipId;
         erc = get(version, data);
         if (erc == E_OK) {
+            _cmds=data;
             reply.addKeyValue(H("$cmds"),data);
             reply.addKeyValue(H("version"), version);
             flush(); // drop last ACK
@@ -195,7 +198,9 @@ void BootLoader::onEvent(Cbor& msg)
             ss.append("len=").append(data.length());
             setLog(ss.c_str());
             erc = writeMemory(address, data);
-            reply.addKeyValue(H("address"),address).addKeyValue(H("length"),data.length());
+            reply.addKeyValue(H("address"),address)
+            .addKeyValue(H("$data"),data)
+            .addKeyValue(H("length"),data.length());
         } else {
             erc=EINVAL;
         }
@@ -214,8 +219,10 @@ void BootLoader::onEvent(Cbor& msg)
         erc = extendedEraseMemory();
 
     } else if ( eb.isRequest(H("eraseAll")) ) {
-
-        erc = eraseAll();
+        if ( _cmds.seek(BL_ERASE_MEMORY))
+            erc = eraseAll();
+        else
+            erc = extendedEraseMemory();
 
     } else if ( eb.isRequest(H("readMemory")) ) {
 
@@ -408,15 +415,13 @@ Erc BootLoader::writeMemory(uint32_t address, Bytes& data)
     Erc erc = E_OK;
     if ((erc = waitAck(out.map(GET, 2),  DELAY)) == E_OK) {
         if ((erc = waitAck(out.map(ADDRESS, 5),  DELAY)) == E_OK) {
-            Serial.write(data.length() - 1);
+            uint8_t len=data.length() - 1;
+            Serial.write(len);
             Serial.write(data.data(), data.length());
-            Serial.write(
-                ((byte) (data.length() - 1))
-                ^ xorBytes(data.data(), data.length()));
-            txd.write(data.length() - 1);
+            Serial.write((len)^ xorBytes(data.data(), data.length()));
+            txd.write(len);
             txd.write(data.data(),0, data.length());
-            txd.write(((byte) (data.length() - 1))
-                ^ xorBytes(data.data(), data.length()));
+            txd.write((len)^ xorBytes(data.data(), data.length()));
             if ((erc = readTillAck( _in, 200)) == E_OK) {
 
             }

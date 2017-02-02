@@ -13,6 +13,7 @@ class BootLoader : public Actor
     uint32_t _baudrate;
     uint32_t _usartRxd;
     uint64_t _endTime;
+    Bytes _cmds;
     Bytes _in;
 public:
     BootLoader(const char* name);
