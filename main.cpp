@@ -19,9 +19,9 @@
 #include <Mqtt.h>
 #include <MqttJson.h>
 #include <System.h>
-#include <BootLoader.h>
-#include <UdpServer.h>
 #include <MqttJson.h>
+#include <DWM1000_Tag.h>
+#include <DWM1000_Anchor.h>
 
 uint32_t BAUDRATE = 115200;
 
@@ -50,53 +50,39 @@ public:
         _bl =  H("bootloader");
     }
     void setup() {
-        eb.onDst(H("timer")).subscribe(this);
-        eb.onEvent(H("mqtt"),0).subscribe(this);
-        timeout(1000);
+        eb.onDst(H("timer")).call(this);
+        timeout(10000);
     }
 
     void onEvent(Cbor& msg) {
         PT_BEGIN();
-WAIT_CONNECTED : {
+LOOP : {
             while(true) {
-                eb.request(H("mqtt"),H("connect"),id());
+                eb.request(H("remote1"),H("connect"),id());
                 eb.send();
                 timeout(3000);
-                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("mqtt"),H("connected")));
-                if ( ! timeout()) goto TEST;
-                INFO(" waiting mqtt connect .. ");
+                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("remote1"),H("connect")));
             }
         }
-TEST : {
-            while(true) {
-                eb.request(_bl,H("resetBootloader"),id());
-                eb.send();
-                timeout(3000);
-                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(_bl,H("resetBootloader")));
-                if ( timeout()) goto TEST;
-                eb.request(_bl,H("get"),id());
-                eb.send();
-                timeout(3000);
-                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(_bl,H("get")));
-                if ( timeout()) goto TEST;
-            }
-        }
-
         PT_END();
     }
 };
-Wifi wifi;
-mDNS mdns(wifi);
-//Timer timer;
-LedBlinker led;
-Mqtt mqtt("mqtt",1024);
-MqttJson router("router",1024);
-System systm;
-BootLoader bootloader("bootloader");
-UdpServer udp("udp");
+
+
 
 
 #include <main_labels.h>
+
+
+Wifi wifi("wifi");
+mDNS mdns(wifi);
+Timer timer;
+LedBlinker led;
+Mqtt mqtt("mqtt",1024);
+System systm("system");
+MqttJson router("router",1024);
+DWM1000_Tag dwm1000Tag("DWM1000_TAG");
+DWM1000_Anchor dwm1000Anchor("DWM1000_ANCHOR");
 
 void setup()
 {
@@ -109,10 +95,8 @@ void setup()
     Sys::init();
     INFO("");
     char hn[20];
-//   hostname = "wibo_";
-//    hostname += ESP.getChipId();
-//    sprintf(hn,"wibo_%X",ESP.getChipId());
-    strcpy(hn,"wibo");
+
+    sprintf(hn,"ESP_%X",ESP.getChipId());
     hostname = hn;
     INFO(" hostname : %s",hn);
     Sys::hostname(hn);
@@ -122,21 +106,37 @@ void setup()
     ssid = WIFI_SSID;
     pswd= WIFI_PSWD;
     hostname=hn;
+
     wifi.setConfig(ssid,pswd,hostname);
     mdns.setConfig(hostname,2000);
     INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
 
-    eb.onAny().subscribe([](Cbor& msg) {
+    eb.onAny().call([](Cbor& msg) { // Log all events
         Str str(256);
         eb.log(str,msg);
         DEBUG("%s",str.c_str());
     });
 
+ /*   eb.onEvent(systm.id(),EB_UID_IGNORE).call([](Cbor& msg) { // PUBLISH system events
+        router.ebToMqtt(msg);
+    }); */
+
     uid.add(labels,LABEL_COUNT);
+    led.setMqtt(mqtt.id());
+    led.setWifi(wifi.id());
+//    mqtt.setWifi(wifi.id());
     wifi.setup();
     mdns.setup();
-//    timer.setup();
+    timer.setup();
+    if ( strcmp(Sys::hostname(),"ESP_15A281")!=0) {
+        dwm1000Tag.setup();
+        INFO("TAG started");
+    } else {
+        dwm1000Anchor.setup();
+        INFO("ANCHOR started");
+    }
+    
 
     mqtt.setup();
     router.setMqttId(mqtt.id());
@@ -144,9 +144,8 @@ void setup()
 
     led.setup();
     systm.setup();
-    bootloader.setup();
-    
-    udp.setup();
+
+
 //	eb.onEvent(H("system"),H("state")).subscribe(&router,(MethodHandler)&Router::ebToMqtt); // publisize timer-state events
 
 
@@ -158,6 +157,5 @@ extern "C"  void loop()
     wifi.loop();
     mqtt.loop();
     mdns.loop();
-    udp.loop();
-    bootloader.loop();
+
 }

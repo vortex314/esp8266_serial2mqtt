@@ -8,13 +8,11 @@
 #include "Wifi.h"
 #include <Config.h>
 
-Wifi::Wifi() :
-    Actor("wifi")
+Wifi::Wifi(const char* name) :
+    Actor(name)
 {
-    switchState(H("disconnected"));
     _ssid = "ssid";
     _password = "password";
-    _hostname = Sys::hostname();
 }
 
 Wifi::~Wifi()
@@ -33,17 +31,20 @@ void Wifi::switchState(int st)
         if (st == H("connected")) {
             INFO(" Wifi Connected.");
             INFO(" ip : %s ", WiFi.localIP().toString().c_str());
-            eb.publish(H("wifi"),H("connected"));
+            eb.event(id(),H("connected")).addKeyValue(H("data"),true);
+            eb.send();
         } else {
             WARN(" Wifi Disconnected.");
-            eb.publish(H("wifi"),H("disconnected"));
+            eb.event(id(),H("disconnected")).addKeyValue(H("data"),true);
+            eb.send();
         }
     }
 }
 
 void Wifi::setup()
 {
-    WiFi.hostname(_hostname);
+    switchState(H("disconnected"));
+    WiFi.hostname(Sys::hostname());
     WiFi.begin(_ssid.c_str(), _password.c_str());
     WiFi.enableSTA(true);
 }
@@ -58,8 +59,8 @@ void Wifi::loop()
             DEBUG(" still connecting ");
             return;
         } else
-        INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", getHostname(),
-         getSSID(), getPassword());
+            INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", getHostname(),
+                 getSSID(), getPassword());
 
     }
     switchState(WiFi.status() == WL_CONNECTED ? H("connected") : H("disconnected"));

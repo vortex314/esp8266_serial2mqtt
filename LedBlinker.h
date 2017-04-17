@@ -10,14 +10,19 @@
 
 #include <Actor.h>
 #include <Arduino.h>
+#include <EventBus.h>
 
 class LedBlinker: public Actor {
 	uint32_t _interval; //
 	bool _isOn;
+    uid_t _mqtt;
+    uid_t _wifi;
 public:
 	LedBlinker();
 	virtual ~LedBlinker();
-	void blinkFast();
+	void setInterval(uint32_t interval);
+    void setWifi(uid_t wifi);
+    void setMqtt(uid_t mqtt);
 	void blinkSlow();
 	void onEvent(Cbor&);
 	void loop();

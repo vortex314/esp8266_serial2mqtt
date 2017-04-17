@@ -17,7 +17,7 @@ class Wifi: public Actor {
 	String _password;
 	String _hostname;
 public:
-	Wifi();
+	Wifi(const char* name);
 
 	virtual ~Wifi();
 	void init();

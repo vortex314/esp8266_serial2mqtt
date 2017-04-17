@@ -54,3 +54,7 @@ void Sys::delay(unsigned int delta)
 	uint32_t end = ::millis()+ delta;
 	while ( ::millis() < end );
 }
+
+extern "C" uint64_t SysMillis() {
+    return Sys::millis();
+}
