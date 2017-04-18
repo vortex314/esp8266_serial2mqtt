@@ -274,6 +274,7 @@ void DWM1000_Anchor::my_dwt_isr()
             }
         }    else {
             /* Clear RX error events in the DW1000 status register. */
+            _anchor->_errs++;
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
         }
     }
@@ -309,6 +310,7 @@ void DWM1000_Anchor::setup()
 //_________________________________________________INIT SPI ESP8266
 
     resetChip();
+    _spi.setClock(SPI_CLK_1MHZ);
     _spi.init();
     enableIsr();
 
@@ -332,6 +334,9 @@ void DWM1000_Anchor::setup()
     }
     INFO( " dwt_configure done." );
 
+    _spi.setClock(SPI_CLK_1MHZ);
+    _spi.init();
+
     uint32_t device_id = dwt_readdevid();
     uint32_t part_id = dwt_getpartid();
     uint32_t lot_id = dwt_getlotid();
@@ -345,8 +350,8 @@ void DWM1000_Anchor::setup()
 
     /* Set expected response's delay and timeout. See NOTE 4 and 5 below.
      * As this example only handles one incoming frame with always the same delay and timeout, those values can be set here once for all. */
-/*    dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
-    dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);*/
+    /*    dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
+        dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);*/
 
 //    dwt_initialise(DWT_LOADUCODE);
     dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
@@ -372,9 +377,14 @@ WAIT_POLL: {
         while (true) { /* Poll for reception of a frame or error/timeout. See NOTE 7 below. */
             dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
             dwt_rxenable(0); /* Activate reception immediately. */
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
+            dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFSL | DWT_INT_RFCE | DWT_INT_RFTO, 1);	// enable
+
             timeout(1000);/* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
-            dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
             PT_YIELD_UNTIL(timeout());
+
+            status_reg = dwt_read32bitreg(SYS_STATUS_ID);
+            INFO( " SYS_STATUS : %X" , status_reg );
             eb.event(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts);
             eb.send();
             bytes.map(rx_buffer,_frame_len);

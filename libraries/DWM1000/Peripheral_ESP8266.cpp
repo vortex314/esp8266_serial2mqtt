@@ -61,7 +61,13 @@ void Spi::init()
     spi_init(HSPI);
     spi_mode(HSPI, 0, 0);
     //	spi_clock(HSPI, SPI_CLK_PREDIV, SPI_CLK_CNTDIV);
-    spi_clock(HSPI, 4, 10);//
+    spi_clock(HSPI,10,20);
+ /*   if ( _clock==SPI_CLK_1MHZ ) {
+        spi_clock(HSPI, 8, 10);
+    } else if ( _clock==SPI_CLK_10MHZ ) {
+        spi_clock(HSPI, 1, 8);
+    }*/
+    //
 //	spi_tx_byte_order(HSPI, SPI_BYTE_ORDER_HIGH_TO_LOW);
 //	spi_rx_byte_order(HSPI, SPI_BYTE_ORDER_HIGH_TO_LOW);
     spi_tx_byte_order(HSPI, SPI_BYTE_ORDER_LOW_TO_HIGH);

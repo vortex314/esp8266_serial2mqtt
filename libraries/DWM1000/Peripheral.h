@@ -30,6 +30,9 @@ public:
     void setInterruptHandler(InterruptFunction f,void* instance);
 };
 //---------------------------------------------- SPI
+#define SPI_CLK_1MHZ 1
+#define SPI_CLK_10MHZ 2
+
 class Spi
 {
     uint32_t _base;

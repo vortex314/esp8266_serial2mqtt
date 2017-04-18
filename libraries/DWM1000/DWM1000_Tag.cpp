@@ -284,7 +284,7 @@ void DWM1000_Tag::setup()
     dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
     dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
     dwt_setinterrupt(DWT_INT_RFCG , 1);	// enable
-    
+
     _count = 0;
     timeout(5000);
 }
@@ -310,8 +310,12 @@ POLL_SEND: {
             INFO( " Start TXF " );
             dwt_setinterrupt(DWT_INT_TFRS, 0);
             dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
-            dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);				// SEND POLL MSG
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX); // Clear RX error events in the DW1000 status register.
+             dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);				// SEND POLL MSG
             _timeoutCounter = 0;
+            status_reg = dwt_read32bitreg(SYS_STATUS_ID);
+            INFO( " SYS_STATUS before : %X" , status_reg );
+
 
             /* We assume that the transmission is achieved correctly, poll for reception of a frame or error/timeout. See NOTE 8 below. */
             timeout(1000);
@@ -329,9 +333,10 @@ POLL_SEND: {
             eb.send();
             status_reg = dwt_read32bitreg(SYS_STATUS_ID);
 
-            INFO( " SYS_STATUS : %X" , status_reg );
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR); // Clear RX error events in the DW1000 status register.
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);
+            INFO( " SYS_STATUS after : %X" , status_reg );
+            if ( status_reg ==0xDEADDEAD ) setup();
+//            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR); // Clear RX error events in the DW1000 status register.
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
 
             /*
                         status_reg = dwt_read32bitreg(SYS_STATUS_ID);
