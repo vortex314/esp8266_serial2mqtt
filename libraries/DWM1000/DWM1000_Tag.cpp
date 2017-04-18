@@ -250,6 +250,7 @@ void DWM1000_Tag::setup()
 //_________________________________________________INIT SPI ESP8266
 
     resetChip();
+    _spi.setClock(SPI_CLK_1MHZ);
     _spi.init();
     enableIsr();
 
@@ -272,6 +273,9 @@ void DWM1000_Tag::setup()
         INFO( " dwt_configure failed " );
     }
     INFO( " dwt_configure done." );
+
+    _spi.setClock(SPI_CLK_10MHZ);
+    _spi.init();
 
     uint32_t device_id = dwt_readdevid();
     INFO( " device id : %X" , device_id );
@@ -311,7 +315,7 @@ POLL_SEND: {
             dwt_setinterrupt(DWT_INT_TFRS, 0);
             dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX); // Clear RX error events in the DW1000 status register.
-             dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);				// SEND POLL MSG
+            dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);				// SEND POLL MSG
             _timeoutCounter = 0;
             status_reg = dwt_read32bitreg(SYS_STATUS_ID);
             INFO( " SYS_STATUS before : %X" , status_reg );

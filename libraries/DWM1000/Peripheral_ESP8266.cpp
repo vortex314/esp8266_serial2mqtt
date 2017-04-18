@@ -61,12 +61,12 @@ void Spi::init()
     spi_init(HSPI);
     spi_mode(HSPI, 0, 0);
     //	spi_clock(HSPI, SPI_CLK_PREDIV, SPI_CLK_CNTDIV);
-    spi_clock(HSPI,10,20);
- /*   if ( _clock==SPI_CLK_1MHZ ) {
-        spi_clock(HSPI, 8, 10);
+ //   spi_clock(HSPI,10,20);
+    if ( _clock==SPI_CLK_1MHZ ) {
+        spi_clock(HSPI, 4, 20);
     } else if ( _clock==SPI_CLK_10MHZ ) {
-        spi_clock(HSPI, 1, 8);
-    }*/
+        spi_clock(HSPI, 4, 20);
+    }
     //
 //	spi_tx_byte_order(HSPI, SPI_BYTE_ORDER_HIGH_TO_LOW);
 //	spi_rx_byte_order(HSPI, SPI_BYTE_ORDER_HIGH_TO_LOW);
@@ -76,6 +76,19 @@ void Spi::init()
     WRITE_PERI_REG(SPI_CTRL2(HSPI), 0xFFFFFFFF);
 
     WRITE_PERI_REG(SPI_CTRL2(HSPI),
+                   (( 0x1 & SPI_CS_DELAY_NUM ) << SPI_CS_DELAY_NUM_S) |//
+                   (( 0x1 & SPI_CS_DELAY_MODE) << SPI_CS_DELAY_MODE_S) |//
+                   (( 0x1 & SPI_SETUP_TIME )<< SPI_SETUP_TIME_S ) |//
+                   (( 0x1 & SPI_HOLD_TIME )<< SPI_HOLD_TIME_S ) |//
+                   (( 0x1 & SPI_CK_OUT_LOW_MODE )<< SPI_CK_OUT_LOW_MODE_S ) |//
+                   (( 0x1 & SPI_CK_OUT_HIGH_MODE )<< SPI_CK_OUT_HIGH_MODE_S ) |//
+                   (( 0x2 & SPI_MISO_DELAY_MODE )<< SPI_MISO_DELAY_MODE_S ) |//
+                   (( 0x0 & SPI_MISO_DELAY_NUM ) << SPI_MISO_DELAY_NUM_S) |//
+                   (( 0x0 & SPI_MOSI_DELAY_MODE )<< SPI_MOSI_DELAY_MODE_S ) |//
+                   (( 0x0 & SPI_MOSI_DELAY_NUM ) << SPI_MOSI_DELAY_NUM_S) |//
+                   0);
+                   /*
+                    *   WRITE_PERI_REG(SPI_CTRL2(HSPI),
                    (( 0xF & SPI_CS_DELAY_NUM ) << SPI_CS_DELAY_NUM_S) |//
                    (( 0x1 & SPI_CS_DELAY_MODE) << SPI_CS_DELAY_MODE_S) |//
                    (( 0xF & SPI_SETUP_TIME )<< SPI_SETUP_TIME_S ) |//
@@ -87,4 +100,6 @@ void Spi::init()
                    (( 0x0 & SPI_MOSI_DELAY_MODE )<< SPI_MOSI_DELAY_MODE_S ) |//
                    (( 0x0 & SPI_MOSI_DELAY_NUM ) << SPI_MOSI_DELAY_NUM_S) |//
                    0);
+                    */
+                    
 }

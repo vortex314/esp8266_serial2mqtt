@@ -81,8 +81,8 @@ LedBlinker led;
 Mqtt mqtt("mqtt",1024);
 System systm("system");
 MqttJson router("router",1024);
-DWM1000_Tag dwm1000Tag("DWM1000_TAG");
-DWM1000_Anchor dwm1000Anchor("DWM1000_ANCHOR");
+DWM1000_Tag dwm1000Tag("TAG");
+DWM1000_Anchor dwm1000Anchor("ANCHOR");
 
 void setup()
 {

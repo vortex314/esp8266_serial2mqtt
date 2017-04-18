@@ -100,14 +100,7 @@ static uint32 status_reg = 0;
  * 1 uus = 512 / 499.2 µs and 1 µs = 499.2 * 128 dtu. */
 #define UUS_TO_DWT_TIME 65536
 
-/* Delay between frames, in UWB microseconds. See NOTE 4 below. */
-/* This is the delay from Frame RX timestamp to TX reply timestamp used for calculating/setting the DW1000's delayed TX function. This includes the
- * frame length of approximately 2.46 ms with above configuration. */
-#define POLL_RX_TO_RESP_TX_DLY_UUS 2600
-/* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
-#define RESP_TX_TO_FINAL_RX_DLY_UUS 500
-/* Receive final timeout. See NOTE 5 below. */
-#define FINAL_RX_TIMEOUT_UUS 3300
+
 
 /* Delay between frames, in UWB microseconds. See NOTE 4 below. */
 /* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
@@ -125,7 +118,7 @@ typedef unsigned long long uint64;
 /* Delay between frames, in UWB microseconds. See NOTE 4 below. */
 /* This is the delay from Frame RX timestamp to TX reply timestamp used for calculating/setting the DW1000's delayed TX function. This includes the
  * frame length of approximately 2.46 ms with above configuration. */
-#define POLL_RX_TO_RESP_TX_DLY_UUS 2600
+#define POLL_RX_TO_RESP_TX_DLY_UUS 2600+2000
 #define RESP_TX_TO_FINAL_RX_DLY_UUS 500 /* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
 #define FINAL_RX_TIMEOUT_UUS 3300	/* Receive final timeout. See NOTE 5 below. */
 
@@ -190,7 +183,7 @@ bool isFinalMsg()
     return memcmp(rx_buffer, rx_final_msg, ALL_MSG_COMMON_LEN) == 0;
 }
 
-void sendRespMsg()
+int sendRespMsg()
 {
     uint32 resp_tx_time;
 
@@ -209,7 +202,10 @@ void sendRespMsg()
     tx_resp_msg[ALL_MSG_SN_IDX] = frame_seq_nb;
     dwt_writetxdata(sizeof(tx_resp_msg), tx_resp_msg, 0);
     dwt_writetxfctrl(sizeof(tx_resp_msg), 0);
-    dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+    if ( dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED) <0) {
+        return -1;
+    }
+    return 0;
 }
 
 void calcFinalMsg()
@@ -245,10 +241,6 @@ void calcFinalMsg()
     tof = tof_dtu * DWT_TIME_UNITS;
     distance = tof * SPEED_OF_LIGHT;
 
-    /* Display computed distance on LCD. */
-//						char dist_str[20];
-//						sprintf(dist_str,"%3.2f", distance);
-    //                      lcd_display_str(dist_str);
 }
 
 void DWM1000_Anchor::my_dwt_isr()
@@ -257,7 +249,7 @@ void DWM1000_Anchor::my_dwt_isr()
     _anchor->interrupt_detected = true;
     _anchor->_interrupts++;
     status_reg = dwt_read32bitreg(SYS_STATUS_ID);
-    if (status_reg & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR)) {
+    if (status_reg & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR )) {
         if ( status_reg & SYS_STATUS_RXFCG ) {
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG); /* Clear good RX frame event in the DW1000 status register. */
             _anchor->_frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;
@@ -266,15 +258,21 @@ void DWM1000_Anchor::my_dwt_isr()
             }
             if (isPollMsg()) {
                 _anchor->_polls++;
-                sendRespMsg();
+                if ( sendRespMsg() <0){
+                    _anchor->_errs++;
+                }
                 frame_seq_nb++;
             } else if ( isFinalMsg() ) {
                 _anchor->_finals++;
                 calcFinalMsg();
+            } else {
+//               _anchor->_errs++;
             }
-        }    else {
+        }  else if ( status_reg & SYS_STATUS_TXFRS ) {
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+        } else {
             /* Clear RX error events in the DW1000 status register. */
-            _anchor->_errs++;
+//            _anchor->_errs++;
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
         }
     }
@@ -334,7 +332,7 @@ void DWM1000_Anchor::setup()
     }
     INFO( " dwt_configure done." );
 
-    _spi.setClock(SPI_CLK_1MHZ);
+    _spi.setClock(SPI_CLK_10MHZ);
     _spi.init();
 
     uint32_t device_id = dwt_readdevid();
@@ -367,6 +365,7 @@ static int _timeoutCounter = 0;
 void DWM1000_Anchor::onEvent(Cbor& msg)
 {
     Bytes bytes(0);
+    uint32_t sys_mask;
     static uint32_t _oldInterrupts=0;
     PT_BEGIN()
 
@@ -378,7 +377,9 @@ WAIT_POLL: {
             dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
             dwt_rxenable(0); /* Activate reception immediately. */
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
-            dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFSL | DWT_INT_RFCE | DWT_INT_RFTO, 1);	// enable
+            dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFSL | DWT_INT_RFCE | DWT_INT_RFTO | DWT_INT_TFRS, 1);	// enable
+            sys_mask = dwt_read32bitreg(SYS_MASK_ID);
+            INFO(" SYS_MASK : %X ",sys_mask);
 
             timeout(1000);/* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
             PT_YIELD_UNTIL(timeout());
@@ -398,6 +399,8 @@ WAIT_POLL: {
             eb.event(id(),H("finals")).addKeyValue(H("data"),_finals);
             eb.send();
             eb.event(id(),H("polls")).addKeyValue(H("data"),_polls);
+            eb.send();
+            eb.event(id(),H("errs")).addKeyValue(H("data"),_errs);
             eb.send();
             eb.event(id(),H("poll_rx_ts")).addKeyValue(H("data"),poll_rx_ts);
             eb.send();
