@@ -311,17 +311,18 @@ void DWM1000_Anchor::setup()
     _spi.setClock(SPI_CLK_1MHZ);
     _spi.init();
     enableIsr();
+    
 
+while(true) {
     uint64_t eui = 0xF1F2F3F4F5F6F7F;
     dwt_seteui((uint8_t*) &eui);
     dwt_geteui((uint8_t*) &eui);
     INFO(  "EUID : %llX", eui );
-    dwt_seteui((uint8_t*) &eui);
-    dwt_geteui((uint8_t*) &eui);
-    INFO(  "EUID : %llX", eui );
+    if ( eui == 0xF1F2F3F4F5F6F7F) break;
 
 //	dwt_softreset();
     deca_sleep(100);
+}
 
     while (dwt_initialise(DWT_LOADUCODE)) {
         INFO( " dwt_initialise failed " );

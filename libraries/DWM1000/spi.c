@@ -514,7 +514,7 @@ char* bytesToHex(uint8_t* pb, uint32_t len)
 //
 //
 /////////////////////////////////////////////////////////////////////////////////
-int writetospi(uint16 hLen, const uint8 *hbuff, uint32 bLen,
+int writetospi_old(uint16 hLen, const uint8 *hbuff, uint32 bLen,
                const uint8 *buffer)
 {
 
@@ -537,7 +537,7 @@ int writetospi(uint16 hLen, const uint8 *hbuff, uint32 bLen,
 //
 /////////////////////////////////////////////////////////////////////////////////
 
-int readfromspi(uint16 hLen, const uint8 *hbuff, uint32 bLen, uint8 *buffer)
+int readfromspi_old(uint16 hLen, const uint8 *hbuff, uint32 bLen, uint8 *buffer)
 {
     uint32_t i;
 //	INFO("head : %s", bytesToHex(hbuff, hLen));
@@ -557,7 +557,7 @@ int readfromspi(uint16 hLen, const uint8 *hbuff, uint32 bLen, uint8 *buffer)
 //
 //
 /////////////////////////////////////////////////////////////////////////////////
-void spi_set_rate_low()
+void spi_set_rate_low_old()
 {
     spi_clock(HSPI, SPI_CLK_PREDIV, 20);
 }
@@ -566,7 +566,7 @@ void spi_set_rate_low()
 //
 //
 /////////////////////////////////////////////////////////////////////////////////
-void spi_set_rate_high()
+void spi_set_rate_high_old()
 {
     spi_clock(HSPI, SPI_CLK_PREDIV, SPI_CLK_CNTDIV);
 }

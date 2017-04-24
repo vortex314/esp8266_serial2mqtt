@@ -22,6 +22,7 @@
 #include <MqttJson.h>
 #include <DWM1000_Tag.h>
 #include <DWM1000_Anchor.h>
+#include <Memory.h>
 
 uint32_t BAUDRATE = 115200;
 
@@ -83,6 +84,8 @@ System systm("system");
 MqttJson router("router",1024);
 DWM1000_Tag dwm1000Tag("TAG");
 DWM1000_Anchor dwm1000Anchor("ANCHOR");
+Memory memory("memory");
+
 
 void setup()
 {
@@ -129,11 +132,12 @@ void setup()
     wifi.setup();
     mdns.setup();
     timer.setup();
+    memory.setup();
     if ( strcmp(Sys::hostname(),"ESP_15A281")!=0) {
-        dwm1000Tag.setup();
+//        dwm1000Tag.setup();
         INFO("TAG started");
     } else {
-        dwm1000Anchor.setup();
+ //       dwm1000Anchor.setup();
         INFO("ANCHOR started");
     }
     
