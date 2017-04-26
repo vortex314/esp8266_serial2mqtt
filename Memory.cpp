@@ -18,7 +18,7 @@ void Memory::onEvent(Cbor& msg)
 {
     if ( timeout() ) {
         timeout(5000);
-        eb.event(id(),H("interface")).addKeyValue(H("data"),"memory");
+        eb.event(H("services"),H("memory")).addKeyValue(H("#data"),id());
         eb.send();
     } else if ( eb.isRequest(H("set")) && msg.getKeyValue(H("address"),_address) && msg.getKeyValue(H("value"),_value)) {
         *(uint32_t*)_address = _value;

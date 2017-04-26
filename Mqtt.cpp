@@ -63,26 +63,20 @@ void Mqtt::onEvent(Cbor& msg)
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::loop()
 {
+    _client->loop();
     if ( _client->state() != _client_state) {
         _client_state = _client->state();
         if ( _client_state == MQTT_CONNECTED ) {
-            eb.event(id(),H("connected")).addKeyValue(H("data"),true);
-            eb.send();
             state(H("connected"));
             DEBUG(" state changed : %s ",uid.label(state()));
         } else {
-            eb.event(id(),H("disconnected")).addKeyValue(H("data"),true);
-            eb.send();
             state(H("disconnected"));
             DEBUG(" state changed : %s ",uid.label(state()));
-
         }
         eb.event(id(),state());
         eb.send();
-
     }
 
-    _client->loop();
 }
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::onActorRegister(Cbor& cbor)
@@ -163,7 +157,7 @@ void Mqtt::isConnected(Cbor& cbor)
 void Mqtt::disconnect(Cbor& cbor)
 {
     INFO("disconnect()");
-    eb.publish(id(),H("disconnected"));
+//    eb.publish(id(),H("disconnected"));
     _client->disconnect();
     eb.reply().addKeyValue(H("error"), (uint32_t) E_OK);
     eb.send();

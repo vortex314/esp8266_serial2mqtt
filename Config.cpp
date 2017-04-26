@@ -98,10 +98,10 @@ void ConfigClass::set(const char* key, String& value) {
 
 void ConfigClass::get(const char* key, String& value,
 		const char* defaultValue) {
-/*	String input;
+	String input;
 	load(input);
 //	DEBUG(" input :%s",input.c_str());
-	StaticJsonBuffer<400> jsonConf;
+/*	StaticJsonBuffer<400> jsonConf;
 	JsonObject& object = jsonConf.parseObject(input);
 	if (object.containsKey(key))
 		value = (const char*) object[key];
