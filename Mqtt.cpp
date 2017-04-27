@@ -121,11 +121,11 @@ void Mqtt::connect(Cbor& cbor)
         eb.reply().addKeyValue(EB_ERROR,E_OK);
         eb.send();
         state(H("connected"));
-        eb.event(id(),H("connected"));
-        eb.send();
-        INFO(" state changed : %s ",uid.label((uid_t)state()));
+        /*        eb.event(id(),H("connected"));
+               eb.send();
+               INFO(" state changed : %s ",uid.label((uid_t)state()));*/
     } else {
-        eb.publish(id(),H("disconnected"));
+//       eb.publish(id(),H("disconnected"));
         eb.reply().addKeyValue(EB_ERROR,_client->state());
         eb.send();
     }
@@ -184,10 +184,10 @@ void Mqtt::publish(Cbor& cbor)
         } else {
             eb.reply().addKeyValue(EB_ERROR, _client->state());
             eb.send();
-            Cbor msg(0);
-            disconnect(msg);
-            eb.event(id(),H("disconnected"));
-            eb.send();
+            /*           Cbor msg(0);
+                       disconnect(msg);
+                       eb.event(id(),H("disconnected"));
+                       eb.send(); */
         }
     } else {
         eb.reply().addKeyValue(H("error"), _client->state());
@@ -204,6 +204,7 @@ void Mqtt::subscribe(Cbor& cbor)
     cbor.getKeyValue(EB_SRC,_lastSrc);
     if (state() != H("connected")) {
         eb.reply().addKeyValue(H("error"), ENOTCONN);
+        eb.send();
         return;
     }
     Str topic(TOPIC_LENGTH);
@@ -225,6 +226,7 @@ void Mqtt::subscribe(Cbor& cbor)
         eb.send();
         WARN("NOK OK : EINVAL");
     }
+    _client->loop(); // https://github.com/knolleary/pubsubclient/issues/98
 }
 //--------------------------------------------------------------------------------------------------------
 

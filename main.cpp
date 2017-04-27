@@ -99,7 +99,7 @@ void setup()
     INFO("");
     char hn[20];
 
-    sprintf(hn,"ESP_%X",ESP.getChipId());
+    sprintf(hn,"ESP%X",ESP.getChipId());
     hostname = hn;
     INFO(" hostname : %s",hn);
     Sys::hostname(hn);
