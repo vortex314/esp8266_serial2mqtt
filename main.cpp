@@ -34,12 +34,7 @@ Log logger(256);
 
 
 //________________________________________________Se_________________
-#ifndef WIFI_SSID
-#define WIFI_SSID "Merckx3"
-#endif
-#ifndef WIFI_PSWD
-#define WIFI_PSWD "LievenMarletteEwoutRonald"
-#endif
+
 Str line(20);
 class Timer : public Actor
 {
